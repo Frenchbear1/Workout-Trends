@@ -1,0 +1,4543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+  <title>Workout Log</title>
+    <style>
+    :root{
+      --bg:#f7f7f5;
+      --panel:#ffffff;
+      --panel2:#fbfbfa;
+      --stroke:#e6e6e0;
+      --text:#141413;
+      --muted:#6a6a62;
+      --green:#16a34a;
+      --green2:#22c55e;
+      --green3:#86efac;
+      --shadow: 0 10px 25px rgba(0,0,0,.06);
+      --r16:16px;
+      --r22:22px;
+      --ease:cubic-bezier(.2,.8,.2,1);
+      --fast:160ms;
+      --mid:240ms;
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg:#0f1110;
+        --panel:#151816;
+        --panel2:#121513;
+        --stroke:#242a26;
+        --text:#f1f3f2;
+        --muted:#a7aca8;
+        --shadow: 0 14px 28px rgba(0,0,0,.35);
+      }
+    }
+    *{ box-sizing:border-box; }
+    /* iOS-safe full-height background */
+.appBg{
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+
+  background:
+    radial-gradient(900px 600px at 20% -10%, rgba(34,197,94,.08), transparent 55%),
+    radial-gradient(900px 600px at 90% 0%, rgba(22,163,74,.06), transparent 55%),
+    linear-gradient(
+      180deg,
+      #f6f7f9 0%,
+      #f1f3f6 45%,
+      #eceff3 100%
+    );
+}
+
+html, body{
+  height:100%;
+  margin:0;
+}
+
+body{
+  font-family:var(--font);
+  color:var(--text);
+  background:#eceff3; /* fallback for system bounce */
+  overflow-x:hidden;
+}
+
+    .app{ min-height:100%; }
+    /* Top */
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:50;
+      padding: calc(env(safe-area-inset-top) + 14px) 14px 12px;
+      background: color-mix(in srgb, var(--bg) 88%, transparent);
+      border-bottom:1px solid var(--stroke);
+    }
+    .toprow{
+      max-width:720px;   /* narrow + centered */
+      margin:0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .title{
+      font-weight:900;
+      font-size:18px;
+      letter-spacing:.2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .iconBtn{
+      width:44px;
+      height:44px;
+      display:grid;
+      place-items:center;
+      border-radius: 14px;
+      border:1px solid var(--stroke);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      cursor:pointer;
+      transition: transform var(--fast) var(--ease);
+      flex:0 0 auto;
+      padding:0; /* keeps svg centered */
+      line-height:0;
+    }
+    .iconBtn:active{ transform: scale(.98); }
+    .iconBtn svg{
+      width:20px;
+      height:20px;
+      opacity:.92;
+      display:block;      /* prevents weird baseline stretch */
+      flex:0 0 auto;
+    }
+    /* Streak counter (lightning + number) */
+    .streak{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      color: var(--green);
+      font-weight:950;
+      font-size:14px;
+      cursor:default;
+      user-select:none;
+      margin-right:6px;
+      line-height:1;
+    }
+    .streak svg{ width:18px; height:18px; display:block; flex:0 0 auto; }
+    .streak .num{ font-variant-numeric:tabular-nums; }
+    @keyframes streakPulse{ 0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)} }
+    .streak.pulse{ animation: streakPulse 700ms var(--ease); }
+    /* Center column */
+    .content{
+      padding: 14px 14px 26px;
+    }
+    .col{
+      max-width:720px;
+      margin:0 auto;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+    .card{
+      background: var(--panel);
+      border:1px solid var(--stroke);
+      border-radius: var(--r22);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .cardHead{
+      padding:14px;
+      border-bottom:1px solid var(--stroke);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--panel2) 72%, transparent), var(--panel));
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .cardHead .left{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .cardHead .h{
+      margin:0;
+      font-size:15px;
+      font-weight:950;
+      letter-spacing:.2px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .chip{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius: 999px;
+      border:1px solid var(--stroke);
+      background: var(--panel2);
+    }
+    .chip input[type="date"]{
+      border:0;
+      outline:none;
+      background:transparent;
+      color:var(--text);
+      font-weight:950;
+      font-size:13px;
+    }
+    .cardBody{ padding:14px; }
+    /* Sets */
+    .sets{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+.setRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:3px 10px;   /* tighter rows */
+  border:0;
+  background:transparent;
+}
+    .setRow:active{ transform: scale(.995); }
+    .setLeft{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+    .setLeft{
+      position:relative;
+    }
+    .badge{
+      width:34px;
+      height:34px;
+      border-radius: 12px;
+      display:grid;
+      place-items:center;
+      font-weight:950;
+      font-size:12px;
+      color:var(--muted);
+      border:1px solid var(--stroke);
+      background: var(--panel);
+      flex:0 0 auto;
+    }
+    .setLabel{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:1px;
+    }
+    .setLabel .name{
+      font-weight:950;
+      font-size:13px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+.stepper{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:0;
+  border:0;
+  background:transparent;
+}
+.stepBtn{
+  width:32px;
+  height:32px;
+  border-radius: 12px;
+  border:1px solid color-mix(in srgb, var(--stroke) 70%, transparent);
+  background: var(--panel2);
+  color: var(--text);
+  font-weight:950;
+  font-size:16px;
+  cursor:pointer;
+  transition: transform var(--fast) var(--ease);
+  display:grid;
+  place-items:center;
+}
+.stepBtn:active{ transform: scale(.98); }
+.repNum{
+  min-width:28px;
+  height:32px;
+  padding:0;
+  /* remove pill look */
+  border:0;
+  background:transparent;
+  border-radius:0;
+  display:grid;
+  place-items:center;
+  font-weight:950;
+  font-size:13px;
+  letter-spacing:.2px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+    .trashBtn{
+  width:38px;
+  height:38px;
+  border-radius: 14px;
+  border:1px solid var(--stroke);
+  background: var(--panel);
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  transition: transform var(--fast) var(--ease);
+  color: color-mix(in srgb, #ef4444 80%, var(--muted));
+}
+    .trashBtn:active{ transform: scale(.98); }
+    .trashBtn svg{ width:16px; height:16px; opacity:.92; display:block; }
+    .actions{
+      margin-top:12px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .btn{
+      border:1px solid var(--stroke);
+      background: var(--panel);
+      color:var(--text);
+      border-radius: 14px;
+      height:40px;
+      padding:0 14px;
+      font-weight:950;
+      cursor:pointer;
+      transition: transform var(--fast) var(--ease);
+    }
+    .btn:active{ transform: scale(.98); }
+    .btnPrimary{
+      border-color: color-mix(in srgb, var(--green) 30%, var(--stroke));
+      background: color-mix(in srgb, var(--green) 10%, var(--panel));
+    }
+    .btnGhost{
+      background: var(--panel2);
+    }
+    /* Video */
+    .drop{
+      margin-top:12px;
+      border-radius: var(--r22);
+      border:1px solid var(--stroke);
+      background: var(--panel2);
+      overflow:hidden;
+    }
+    .dropHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:12px 14px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .dropHead .t{ font-weight:950; font-size:13px; }
+    .chev{
+      width:38px;
+      height:38px;
+      border-radius: 14px;
+      border:1px solid var(--stroke);
+      background: var(--panel);
+      display:grid;
+      place-items:center;
+      transition: transform var(--mid) var(--ease);
+      flex:0 0 auto;
+    }
+    .drop.open .chev{ transform: rotate(180deg); }
+    .dropBody{
+      max-height:0;
+      overflow:hidden;
+      transition: max-height var(--mid) var(--ease);
+      border-top:1px solid var(--stroke);
+    }
+    .drop.open .dropBody{ max-height: 1200px; }
+    .dropPad{ padding:14px; }
+    .input{
+      width:100%;
+      border:1px solid var(--stroke);
+      outline:none;
+      background: var(--panel);
+      color:var(--text);
+      padding:12px 12px;
+      border-radius: 14px;
+      font-size:13px;
+      font-weight:900;
+    }
+    .videoBox{
+      margin-top:12px;
+      border-radius: var(--r22);
+      border:1px solid var(--stroke);
+      overflow:hidden;
+      background: var(--panel);
+    }
+    .aspect916{
+  aspect-ratio: 9 / 16;
+  width:100%;
+  max-width: 280px;   /* 👈 smaller, intentional */
+  margin:0 auto;
+  background:#000;
+}
+    .aspect916 iframe{
+      width:100%;
+      height:100%;
+      border:0;
+      display:block;
+    }
+    /* Chart */
+    .chartWrap{
+      padding:14px;
+    }
+    .chartTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+    .filters{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .filters button{
+      border:1px solid var(--stroke);
+      background: var(--panel);
+      color:var(--muted);
+      border-radius: 999px;
+      padding:9px 12px;
+      font-weight:950;
+      font-size:12px;
+      cursor:pointer;
+      transition: transform var(--fast) var(--ease), color var(--fast) var(--ease), background var(--fast) var(--ease);
+    }
+    .filters button:active{ transform: scale(.98); }
+    .filters button.on{
+      color: var(--text);
+      border-color: color-mix(in srgb, var(--green) 30%, var(--stroke));
+      background: color-mix(in srgb, var(--green) 10%, var(--panel));
+    }
+    .canvasWrap{
+      position:relative;
+    }
+    canvas{
+  width:100%;
+  height:290px;
+  display:block;
+  border-radius: var(--r22);
+  border:1px solid var(--stroke);
+  background: var(--panel2);
+
+  /* Allow page scrolling when swipe starts on the chart */
+  touch-action: pan-y;
+}
+
+    .tip{
+      position:absolute;
+      pointer-events:none;
+      min-width: 160px;
+      max-width: 260px;
+      padding:10px 10px;
+      border-radius: 14px;
+      border:1px solid var(--stroke);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      transform: translate(-50%, calc(-100% - 10px));
+      opacity:0;
+      transition: opacity var(--fast) var(--ease);
+      font-size:12px;
+      font-weight:900;
+      line-height:1.35;
+      white-space:normal;
+    }
+    .tip.show{ opacity:1; }
+    .tip .d{
+      font-weight:950;
+      margin-bottom:6px;
+    }
+    .tip .line{
+      font-weight:900;
+      color: var(--muted);
+    }
+    .tip .tot{
+      margin-top:6px;
+      font-weight:950;
+    }
+    /* Logs list under chart */
+    .logsWrap{
+      padding: 0 14px 14px;
+      border-top: 1px solid var(--stroke);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--panel2) 60%, transparent), transparent);
+    }
+    .logsHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding: 12px 0 10px;
+    }
+    .logsTitle{
+      font-weight:950;
+      font-size:13px;
+      color: var(--muted);
+      letter-spacing:.2px;
+    }
+    .logsTable{
+      border:1px solid var(--stroke);
+      background: var(--panel2);
+      border-radius: var(--r22);
+      overflow:hidden;
+    }
+    .logsRow{
+      display:grid;
+      gap:4px;
+      padding: 8px 8px;
+      border-top:1px solid var(--stroke);
+      align-items:center;
+      cursor:pointer;
+      user-select:none;
+      transition: transform var(--fast) var(--ease), background var(--fast) var(--ease);
+      font-variant-numeric: tabular-nums;
+    }
+    .logsRow:first-child{ border-top:0; }
+    .logsRow:active{ transform: scale(.995); }
+    .logsRow:hover{
+      background: color-mix(in srgb, var(--panel) 55%, var(--panel2));
+    }
+    .logsRow.header{
+      cursor:default;
+      background: var(--panel);
+    }
+    .logsRow.header:hover{ background: var(--panel); }
+    .logsRow.header:active{ transform:none; }
+    /* Swipe-to-delete (logs) */
+    .logsSwipeWrap{
+      position:relative;
+      overflow:hidden;
+    }
+    .logsSwipeAction{
+      position:absolute;
+      inset:0;
+      display:flex;
+      justify-content:flex-end;
+      align-items:stretch;
+      background: color-mix(in srgb, #ef4444 14%, var(--panel2));
+
+      /* Hidden until swipe begins; JS will drive opacity while swiping */
+      opacity:0;
+      transition: opacity 80ms linear;
+      pointer-events:none; /* only clickable when fully opened */
+    }
+
+    .logsSwipeWrap[data-open="1"] .logsSwipeAction{
+      pointer-events:auto;
+    }
+
+    .logsSwipeDeleteBtn{
+      width:84px;
+      border:0;
+      background:transparent;
+      color: color-mix(in srgb, #ef4444 85%, var(--text));
+      font-weight:950;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .logsSwipeFront{
+      will-change: transform;
+      touch-action: pan-y; /* allow vertical scroll; we handle horizontal */
+    }
+    .cellDate{
+      font-weight:950;
+      font-size:13px;
+      color: var(--text);
+      min-width:0;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .cellNum{
+  font-weight:950;
+  font-size:13px;
+  color: var(--text);
+  min-width:0;
+  /* NEW */
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+.cellDate.muted{ color: var(--muted); font-weight:900; }
+    .cellNum.muted{ color: var(--muted); font-weight:900; }
+    .logsFoot{
+      padding-top:10px;
+      display:flex;
+      justify-content:flex-end;
+    }
+    /* Settings modal */
+    .modalBack{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.35);
+      display:none;
+      align-items:flex-end;
+      justify-content:center;
+      padding: 18px 14px calc(18px + env(safe-area-inset-bottom));
+      z-index:100;
+    }
+    .modalBack.show{ display:flex; }
+    .modal{
+      width:min(720px, 100%);
+      border-radius: 24px;
+      border:1px solid var(--stroke);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      transform: translateY(14px);
+      opacity:0;
+      transition: transform var(--mid) var(--ease), opacity var(--mid) var(--ease);
+    }
+    .modalBack.show .modal{ transform: translateY(0); opacity:1; }
+    .modalHead{
+      padding:14px;
+      border-bottom:1px solid var(--stroke);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      background: var(--panel2);
+    }
+.modalTitle{
+  margin:0;
+  font-size:15px;
+  font-weight:850; /* matches Templates feel */
+}
+.modalBody{ padding:14px; }
+/* Shared modal card styling (inner spacing only) */
+.field{
+  border:1px solid var(--stroke);
+  background: var(--panel2);
+  border-radius: var(--r22);
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  overflow:hidden; /* clips iOS date input weirdness */
+}
+
+.field .label,
+.field .sub{
+  font-weight:950;
+  font-size:12px;
+  line-height:1.1;
+  color: var(--muted);
+  letter-spacing:.2px;
+  margin:0; /* spacing handled by .field gap */
+}
+.field input{
+  width:100%;
+  border:1px solid var(--stroke);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 14px;
+  padding:12px;
+  outline:none;
+  font-weight:950;
+  font-size:13px; /* keep your desktop look */
+  box-sizing:border-box;
+}
+
+/* iPhone/iPad: prevent input-focus zoom */
+@media (hover:none) and (pointer:coarse){
+  .field input,
+  input,
+  textarea,
+  select{
+    font-size:16px !important;
+  }
+}
+
+    .modalFoot{
+      padding:12px 14px 14px;
+      border-top:1px solid var(--stroke);
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+      background: var(--panel2);
+    }
+    /* Toast */
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom: 18px;
+      transform: translateX(-50%) translateY(14px);
+      opacity:0;
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid var(--stroke);
+      background: var(--panel);
+      color:var(--text);
+      font-size:12px;
+      font-weight:950;
+      z-index:300;
+      transition: opacity var(--fast) var(--ease), transform var(--fast) var(--ease);
+      pointer-events:none;
+      max-width: calc(100vw - 28px);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      box-shadow: var(--shadow);
+    }
+    .toast.show{
+      opacity:1;
+      transform: translateX(-50%) translateY(0);
+    }
+/* --------------------------
+   Auth popup (fits THIS app)
+   -------------------------- */
+/* Kill the "double modal" look */
+#authBack{
+  align-items: center; /* center modal vertically */
+}
+.authShell{
+  width: min(520px, 94vw);
+  border-radius: 28px;
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+/* Card itself */
+.authForm{
+  position: relative;
+  width: 100%;
+  border-radius: 24px;
+  border: 1px solid var(--stroke);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--panel2) 70%, transparent), var(--panel));
+  padding: 18px 16px 16px;
+  display:flex;
+  flex-direction:column;
+  gap: 14px;              /* MORE vertical spacing */
+}
+/* force vertical rhythm inside auth popup */
+.authForm > *{
+  margin-top: 6px;
+}
+.authForm > *:first-child{
+  margin-top: 0;
+}
+/* X button INSIDE the small popup */
+.authClose{
+  position:absolute;
+  top: 12px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  padding:0;
+  line-height:0;
+  transition: transform var(--fast) var(--ease);
+}
+.authClose:active{ transform: scale(.98); }
+.authClose svg{ width:18px; height:18px; display:block; opacity:.92; }
+.authForm #heading{
+  margin: 6px 0 2px;
+  font-size: 16px;
+  font-weight: 950;
+  letter-spacing: .2px;
+  text-align:center;
+  padding-top: 6px;
+}
+.authField{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding: 14px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+  margin-bottom: 4px; /* 👈 creates visible separation */
+}
+.authField svg{
+  width:18px;
+  height:18px;
+  opacity:.9;
+  flex:0 0 auto;
+  display:block;
+}
+.authField input{
+  width:100%;
+  border:0;
+  outline:none;
+  background: transparent;
+  color: var(--text);
+  font-weight: 950;
+  font-size: 13px;
+}
+.authRow{
+  display:flex;
+  gap:12px;
+  margin-top: 8px;
+}
+.authRow .btn{
+  flex:1;
+  height:44px;
+  border-radius: 16px;
+}
+.authLinkBtn{
+  width:100%;
+  height:42px;
+  border-radius: 16px;
+  border: 1px solid var(--stroke);
+  background: var(--panel2);
+  color: var(--text);
+  font-weight: 950;
+  cursor:pointer;
+  transition: transform var(--fast) var(--ease);
+  margin-top: 6px;
+}
+.authLinkBtn:active{ transform: scale(.98); }
+.authDanger{
+  border-color: color-mix(in srgb, #ef4444 40%, var(--stroke));
+  background: color-mix(in srgb, #ef4444 10%, var(--panel));
+}
+.authSignedIn{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  align-items:center;
+  padding: 8px 0 2px;
+}
+.authPill{
+  max-width: 100%;
+  padding: 12px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: var(--panel2);
+  font-weight: 950;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Add Set — text only */
+.actionsLeft{
+  justify-content:flex-start;
+}
+.addSetText{
+  background:none;
+  border:none;
+  padding:4px 0;
+  font-weight:950;
+  font-size:13px;
+  color:var(--green);
+  cursor:pointer;
+}
+.addSetText:active{
+  transform:translateY(1px);
+}
+/* Chart controls (plain text + native arrow) */
+.chartControls{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  flex-wrap:wrap;
+}
+.ctrl{
+  display:flex;
+  align-items:baseline; /* 👈 key fix */
+  gap:8px;
+}
+.ctrlLabel{
+  font-weight:950;
+  font-size:12px;
+  line-height:1;          /* 👈 lock baseline */
+  color: var(--muted);
+  letter-spacing:.2px;
+}
+.ctrlSelect{
+  border:0;
+  outline:none;
+  background:transparent;
+  color: var(--text);
+  font-weight:950;
+  font-size:12px;
+  padding: 6px 0;
+  cursor:pointer;
+  appearance:auto; /* keep the native arrow */
+}
+/* Inline actions under sets */
+.actionLink{
+  border:0;
+  background:transparent;
+  padding:4px 0;
+  font-weight:950;
+  font-size:13px;
+  cursor:pointer;
+  color: var(--muted);
+}
+.actionLink:active{ transform: translateY(1px); }
+.photoLink{
+  color: var(--muted);
+}
+.dangerLink{
+  color: color-mix(in srgb, #ef4444 70%, var(--muted));
+}
+.inlinePanel{
+  margin-top:10px;
+  padding:12px;
+  border:1px solid var(--stroke);
+  border-radius: var(--r22);
+  background: var(--panel2);
+}
+.inlineHint{
+  margin-top:10px;
+  font-size:12px;
+  font-weight:900;
+  color: var(--muted);
+}
+.photoBox{
+  margin-top:10px;
+  padding:12px;
+  border:1px solid var(--stroke);
+  border-radius: var(--r22);
+  background: var(--panel2);
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.photoBox img{
+  width:100%;
+  max-height: 340px;
+  object-fit: contain;   /* 👈 show entire image */
+  border-radius: 16px;
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+}
+/* Logs: tiny icon buttons */
+.cellIcon{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  justify-content:flex-start;
+}
+.miniIconBtn{
+  width:24px;
+  height:24px;
+  border:0;
+  background:transparent;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  padding:0;
+  line-height:0;
+  color: var(--muted);
+}
+.miniIconBtn:active{ transform: scale(.95); }
+.miniIconBtn:active{ transform: scale(.98); }
+.miniIconBtn svg{ width:16px; height:16px; opacity:.9; display:block; }
+/* Fullscreen photo viewer */
+.photoViewerBack{
+  position:fixed;
+  inset:0;
+  background: rgba(0,0,0,.70);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding: 18px 14px;
+  z-index: 400;
+}
+.photoViewerBack.show{ display:flex; }
+.photoViewer{
+  width: min(920px, 96vw);
+  max-height: 92vh;
+  border-radius: 22px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(20,20,20,.35);
+  overflow:hidden;
+  position:relative;
+}
+.photoViewer img{
+  width:100%;
+  height: 100%;
+  max-height: 92vh;
+  object-fit: contain;
+  background: #000;
+  display:block;
+}
+.photoViewerClose{
+  position:absolute;
+  top: 10px;
+  right: 10px;
+  width:44px;
+  height:44px;
+  border-radius: 14px;
+  border:1px solid rgba(255,255,255,.18);
+  background: rgba(0,0,0,.35);
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  padding:0;
+  line-height:0;
+}
+.photoViewerClose svg{ width:18px; height:18px; display:block; opacity:.95; color:#fff; }
+/* --------------------------
+   Workouts (grouped sets)
+   -------------------------- */
+.workoutHeadRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 10px;
+  border-radius: var(--r16);
+  border:1px solid var(--stroke);
+  background: color-mix(in srgb, var(--panel2) 100%, var(--panel));
+}
+.workoutTitleBtn{
+  border:0;
+  background:transparent;
+  padding:0;
+  text-align:left;
+  cursor:pointer;
+  min-width:0;
+  font-weight:950;
+  font-size:13px;
+  color: var(--text);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.workoutSub{
+  font-weight:900;
+  font-size:12px;
+  color: var(--muted);
+  margin-top:2px;
+}
+.setRow.indent{
+  margin-left: 28px; /* double indentation */
+  position:relative;
+}
+/* divider only BETWEEN sets (not before first) */
+.setRow.indent + .setRow.indent::before{
+  content:"";
+  position:absolute;
+  top:-2px;
+  left:0;
+  width:56px;  /* slightly longer */
+  height:1px;
+  background: color-mix(in srgb, var(--stroke) 85%, var(--text) 15%);
+}
+/* --------------------------
+   Workout pills under chart
+   -------------------------- */
+.workoutPills{
+  margin-top: 12px;
+  display:flex;
+  justify-content:center;
+}
+.workoutPillsInner{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+.pillBtn{
+  border:1px solid var(--stroke);
+  background: var(--panel);
+  color: var(--muted);
+  border-radius: 999px;
+  padding:9px 12px;
+  font-weight:950;
+  font-size:12px;
+  cursor:pointer;
+  transition: transform var(--fast) var(--ease), color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.pillBtn:active{ transform: scale(.98); }
+.pillBtn.on{
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--green) 30%, var(--stroke));
+  background: color-mix(in srgb, var(--green) 10%, var(--panel));
+}
+.cellTotal{
+  font-size:14px;
+}
+.cellCount{
+  color: var(--muted);
+  font-weight:900;
+}
+.headRight{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.templatesBtn{
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  background:transparent;
+  border:0;
+  padding:0;
+  cursor:pointer;
+  color: var(--text);
+}
+.templatesBtn svg{
+  width:18px;
+  height:18px;
+  opacity:.9;
+  display:block;
+}
+.templatesBtn:active{
+  transform: scale(.95);
+}
+.rowTight{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.rowTight .input{ flex:1; min-width:0; }
+.tplList{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-top:8px;
+}
+.tplName{ font-weight:700; }
+.tplMeta{
+  font-size:12px;
+  opacity:.75;
+  margin-top:2px;
+}
+.tplBtns{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:0 0 auto;
+}
+.tplApply{
+  height:34px;
+  padding:0 12px;
+  border-radius:999px;
+}
+.tplDel{
+  width:38px;
+  height:38px;
+  border-radius:14px;
+  border:1px solid var(--stroke);
+  background: var(--panel);
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  transition: transform var(--fast) var(--ease);
+  color: color-mix(in srgb, #ef4444 80%, var(--muted)); /* 👈 red */
+}
+.tplDel:active{ transform: scale(.98); }
+.tplDel svg{
+  width:16px;
+  height:16px;
+  opacity:.92;
+  display:block;
+}
+.actionsRow{
+  margin-top:12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.actionsLeft,
+.actionsRight{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.actionsRight{
+  justify-content:flex-end;
+}
+/* ===============================
+   MODALS: single source of truth
+   (Templates + Settings match)
+   =============================== */
+/* fix invalid rgba alphas (prevents weird browser differences) */
+.modalBack{
+  background: rgba(0,0,0,.35);
+}
+/* Modal shell */
+.modal{
+  width: min(720px, 100%);
+  border-radius: 24px;
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+/* Modal header */
+.modalHead{
+  padding: 14px;
+  border-bottom: 1px solid var(--stroke);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  background: var(--panel2);
+}
+/* Keep titles consistent everywhere */
+.modalTitle{
+  margin: 0;
+  font-size: 15px;
+  font-weight: 850;
+}
+/* Body padding */
+.modalBody{
+  padding: 14px;
+}
+/* The card blocks inside modals (shared) */
+.modalBody .field{
+  border: 1px solid var(--stroke);
+  background: var(--panel2);
+  border-radius: var(--r22);
+  padding: 14px;
+  display:flex;
+  flex-direction:column;
+  gap: 6px;
+  margin: 0; /* no per-modal margin hacks */
+}
+/* Labels inside those cards (shared) */
+.modalBody .field .label,
+.modalBody .field .sub{
+  margin: 0;
+  font-weight: 950;
+  font-size: 12px;
+  line-height: 1.1;
+  color: var(--muted);
+  letter-spacing: .2px;
+}
+/* Inputs inside modal cards (shared) */
+.modalBody .field input,
+.modalBody .field .input{
+  width: 100%;
+  border: 1px solid var(--stroke);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 12px;
+  outline: none;
+  font-weight: 950;
+  font-size: 13px;
+}
+/* Templates list should use the SAME material as Settings cards */
+.tplList{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.tplItem{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--stroke);
+  background: var(--panel); /* matches the input/panel look */
+  backdrop-filter: none;
+}
+/* Keep row layout */
+.rowTight{
+  display:flex;
+  gap: 10px;
+  align-items:center;
+}
+.rowTight .input{ flex:1; min-width:0; }
+/* =========================================
+   MODALS — HARD LOCKED SPACING SYSTEM
+   Settings + Templates = IDENTICAL
+   ========================================= */
+/* Modal body owns ALL vertical rhythm */
+.modalBody{
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:14px; /* 🔒 this is the ONLY vertical spacing */
+}
+/* Cards inside modals */
+.modalBody .field{
+  border:1px solid var(--stroke);
+  background: var(--panel2);
+  border-radius: var(--r22);
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin:0;          /* kill legacy margins */
+}
+/* Labels */
+.modalBody .field .label,
+.modalBody .field .sub{
+  margin:0;
+  font-weight:950;
+  font-size:12px;
+  line-height:1.1;
+  color:var(--muted);
+  letter-spacing:.2px;
+}
+/* Inputs */
+.modalBody .field input,
+.modalBody .field .input{
+  width:100%;
+  border:1px solid var(--stroke);
+  background:var(--panel);
+  color:var(--text);
+  border-radius:14px;
+  padding:12px;
+  outline:none;
+  font-weight:950;
+  font-size:13px;
+}
+/* Two-column layout — spacing-neutral */
+.modalBody .twoCol{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px; /* EXACT same gap as vertical */
+}
+@media (max-width:680px){
+  .modalBody .twoCol{
+    grid-template-columns:1fr;
+  }
+}
+/* Template list spacing */
+.tplList{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin:0;
+}
+/* Template rows */
+.tplItem{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid var(--stroke);
+  background:var(--panel);
+}
+/* Row helpers */
+.rowTight{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.rowTight .input{
+  flex:1;
+  min-width:0;
+}
+/* ===============================
+   Settings button — icon only
+   =============================== */
+.filterBtn{
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  /* no pill */
+  border:0;
+  background:transparent;
+  box-shadow:none;
+  cursor:pointer;
+  padding:0;
+  line-height:0;
+  transition:
+    transform var(--fast) var(--ease),
+    color var(--fast) var(--ease),
+    opacity var(--fast) var(--ease);
+}
+.filterBtn svg{
+  width:18px;
+  height:18px;
+  display:block;
+  fill:var(--muted);
+  transition: fill var(--fast) var(--ease);
+}
+/* hover */
+.filterBtn:hover svg{
+  fill:var(--text);
+}
+/* active */
+.filterBtn:active{
+  transform: scale(.92);
+}
+/* Settings: auth row spacing (controls the gap under Goal days) */
+.authCenterRow{
+  display:flex;
+  justify-content:center;
+  margin-top: 10px; /* adjust to taste: try 8px if you want tighter */
+}
+/* Settings: Log out should be plain red text (no pill) */
+#btnAuthCenter.isLogout{
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 6px 0 !important;
+  min-width: 0 !important;
+  width: auto !important;
+  color: color-mix(in srgb, #ef4444 85%, var(--text));
+  font-weight: 950;
+}
+#btnAuthCenter.isLogout:hover{
+  opacity: .85;
+}
+#btnAuthCenter.isLogout:active{
+  transform: scale(.98);
+}
+/* Settings: mode segmented control */
+.seg{
+  display:inline-flex;
+  gap:4px;
+  padding:4px;
+  border:1px solid var(--stroke);
+  background: var(--panel2);
+  border-radius:999px;
+  width:fit-content;
+}
+.segBtn{
+  flex:0 0 auto;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  border-radius:999px;
+  padding:7px 14px;     /* 👈 bigger */
+  font-weight:750;
+  font-size:12px;       /* 👈 bigger */
+  line-height:1;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.segBtn:active{ transform: scale(.98); }
+.segBtn[aria-selected="true"]{
+  color: var(--text);
+  background: color-mix(in srgb, var(--green) 10%, var(--panel));
+  border:1px solid color-mix(in srgb, var(--green) 30%, var(--stroke));
+}
+.segWrap{
+  display:flex;
+  justify-content:center;
+  margin:10px 0 10px;   /* default */
+}
+.segWrap.underFields{
+  margin:6px 0 12px;    /* tighter right under the last field */
+}
+#settingsBack .modalBody{
+  padding-top:10px;   /* reduces the top emptiness */
+}
+/* Chart layout: y labels | canvas, then x labels under canvas */
+.chartGrid{
+  display:grid;
+  grid-template-columns: max-content 1fr; /* hugs labels */
+  grid-template-rows: 1fr auto;
+  gap: 6px 4px; /* reduce horizontal gap */
+  align-items:stretch;
+}
+.chartCanvasWrap{
+  position:relative;
+}
+
+/* Trend overlay controls */
+.trendToggle{
+  position:absolute;
+  right:10px;
+  bottom:10px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border-radius: 999px;
+  border:1px solid var(--stroke);
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  box-shadow: var(--shadow);
+  font-size:12px;
+  font-weight:950;
+  color: var(--text);
+  user-select:none;
+}
+.trendToggle input{
+  width:16px;
+  height:16px;
+  accent-color: var(--green);
+}
+.trendRate{
+  position:absolute;
+  left:50%;
+  bottom:10px;
+  transform: translateX(-50%);
+  padding:8px 10px;
+  border-radius: 999px;
+  border:1px solid var(--stroke);
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  box-shadow: var(--shadow);
+  font-size:12px;
+  font-weight:950;
+  color: var(--text);
+  pointer-events:none;
+}/* Y axis (fixed font, never squishes) */
+.yAxis{
+  grid-row: 1 / 2;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  align-items:flex-end;
+  padding: 0;          /* 👈 kill all padding */
+  margin: 0;           /* 👈 kill margin */
+  width: max-content;  /* 👈 hug the numbers */
+  font-size: 11px;
+  font-weight: 950;
+  color: var(--muted);
+  user-select:none;
+  font-variant-numeric: tabular-nums;
+}
+/* X axis (fixed font, never squishes) */
+.xAxis{
+  grid-column: 2 / 3;
+  display:flex;
+  justify-content:space-between;
+  padding: 0 4px;                  /* tighter */
+  font-size: 11px;                 /* smaller */
+  font-weight: 950;
+  color: var(--muted);
+  user-select:none;
+  font-variant-numeric: tabular-nums;
+}
+.xAxis span{ white-space:nowrap; }
+.workoutPillsStack{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  align-items:center;
+}
+/* Repeat / multiplier toggle (icon -> 2x..5x) */
+.mulBtn{
+  appearance:none;
+  border:0;
+  background:transparent;
+  padding:0;
+  margin:0;
+  width:24px;
+  height:24px;
+  display:grid;
+  place-items:center;
+  color: var(--muted);
+  cursor:pointer;
+  position:absolute;
+  left:-28px;          /* ← THIS is the key */
+  top:50%;
+  transform: translateY(-50%);
+}
+.mulBtn:hover{ color: var(--text); }
+.mulBtn:active{ transform: translateY(-50%) translateY(0.5px); }
+.mulBtn svg{
+  width:16px;
+  height:16px;
+  display:block;
+}
+.mulText{
+  font-weight:600;
+  font-size:12px;
+  letter-spacing:0.2px;
+  color: var(--muted);
+}
+/* Drag handle (touch devices only) */
+.workoutRight{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.workoutDrag{
+  width:28px;
+  height:28px;
+  border:0;
+  background:transparent;
+  display:grid;
+  place-items:center;
+  color: var(--muted);
+  cursor:grab;
+  padding:0;
+  line-height:0;
+  touch-action:none;
+}
+.workoutDrag:active{
+  transform: scale(.96);
+}
+
+.workoutDrag svg{ width:18px; height:18px; display:block; opacity:.9; }
+
+/* Drag visuals */
+.workoutHeadRow.dragTarget{
+  outline: 2px solid color-mix(in srgb, var(--green) 30%, transparent);
+  outline-offset: 2px;
+}
+.workoutDragGhost{
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9999;
+  pointer-events: none;
+  width: min(680px, calc(100vw - 28px));
+  transform: translate(-9999px,-9999px);
+  opacity: .96;
+}
+.workoutDragGhost .workoutHeadRow{
+  box-shadow: 0 18px 40px rgba(0,0,0,.18);
+}
+/* ==========================
+   Workout swipe-to-delete
+   (touch devices only)
+   ========================== */
+.workoutSwipeWrap{
+  position:relative;
+  overflow:hidden;
+}
+.workoutSwipeAction{
+  position:absolute;
+  inset:0;
+  display:flex;
+  justify-content:flex-end;
+  align-items:stretch;
+  background: color-mix(in srgb, #ef4444 14%, var(--panel2));
+
+  /* hidden until swipe; JS drives opacity while swiping */
+  opacity:0;
+  transition: opacity 80ms linear;
+  pointer-events:none; /* only clickable when opened */
+}
+.workoutSwipeWrap[data-open="1"] .workoutSwipeAction{
+  pointer-events:auto;
+}
+.workoutSwipeDeleteBtn{
+  width:84px;                 /* match logs behavior */
+  border:0;
+  background:transparent;
+  color: color-mix(in srgb, #ef4444 85%, var(--text));
+  font-weight:950;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.workoutSwipeFront{
+  will-change: transform;
+  touch-action: pan-y; /* allow vertical scroll; we handle horizontal */
+}
+
+/* On touch devices, hide the header trash button (swipe is the delete UI) */
+@media (hover: none) and (pointer: coarse){
+  .workoutSwipeWrap .trashBtn{ display:none; }
+}
+
+/* Settings: make the date input behave like the main screen chip */
+.fieldDate{ overflow: visible; } /* don't clip iOS date internals */
+
+.fieldDate .chipFull{
+  width:100%;
+  justify-content:center;
+}
+
+.fieldDate .chipFull input[type="date"]{
+  width:100%;
+  border:0 !important;
+  background:transparent !important;
+  padding:0 !important;
+  margin:0 !important;
+  text-align:center;
+  font-weight:950;
+  font-size:16px;               /* prevents iOS zoom */
+  appearance:none;
+  -webkit-appearance:none;
+}
+
+/* keep the calendar affordance from pushing content off-card */
+.fieldDate .chipFull input[type="date"]::-webkit-calendar-picker-indicator{
+  opacity:.65;
+  margin-left:10px;
+}
+button, .btn, .iconBtn, .stepper button, input[type="button"]{
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Disable intro animations on first load only */
+.noIntro *, .noIntro *::before, .noIntro *::after{
+  animation: none !important;
+  transition: none !important;
+}
+
+</style>
+  <link rel="manifest" href="/manifest.json">
+</head>
+<body>
+<div class="appBg"></div>
+<div class="app">
+  <div class="topbar">
+    <div class="toprow">
+      <div class="title" id="topTitle">Day 1</div>
+      <div id="streak" class="streak" aria-hidden="false" title="Consecutive days logged">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
+          <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" fill="currentColor"/>
+        </svg>
+        <div class="num" id="streakNum">0</div>
+      </div>
+      <button
+        id="btnSettings"
+        type="button"
+        class="filterBtn"
+        aria-label="Settings"
+        title="Settings"
+      >
+        <svg viewBox="0 0 512 512" aria-hidden="true">
+          <path d="M0 416c0 17.7 14.3 32 32 32l54.7 0c12.3 28.3 40.5 48 73.3 48s61-19.7 73.3-48L480 448c17.7 0 32-14.3 32-32s-14.3-32-32-32l-246.7 0c-12.3-28.3-40.5-48-73.3-48s-61 19.7-73.3 48L32 384c-17.7 0-32 14.3-32 32zm128 0a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zM320 256a32 32 0 1 1 64 0 32 32 0 1 1 -64 0zm32-80c-32.8 0-61 19.7-73.3 48L32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l246.7 0c12.3 28.3 40.5 48 73.3 48s61-19.7 73.3-48l54.7 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-54.7 0c-12.3-28.3-40.5-48-73.3-48zM192 128a32 32 0 1 1 0-64 32 32 0 1 1 0 64zm73.3-64C253 35.7 224.8 16 192 16s-61 19.7-73.3 48L32 64C14.3 64 0 78.3 0 96s14.3 32 32 32l86.7 0c12.3 28.3 40.5 48 73.3 48s61-19.7 73.3-48L480 128c17.7 0 32-14.3 32-32s-14.3-32-32-32L265.3 64z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="col">
+      <!-- DAILY LOG -->
+      <div class="card">
+        <div class="cardHead">
+          <div class="left">
+            <div class="h" id="dayHeader">Today</div>
+          </div>
+          <div class="headRight">
+            <button id="btnTemplates" type="button" class="templatesBtn" title="Templates" aria-label="Templates">
+              <!-- layers icon -->
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <path fill="currentColor" d="M12 2 1 7l11 5 11-5-11-5Zm0 8L1 5v2l11 5 11-5V5l-11 5Zm0 6L1 11v2l11 5 11-5v-2l-11 5Z"/>
+              </svg>
+            </button>
+            <div class="chip">
+              <input id="datePick" type="date"/>
+            </div>
+          </div>
+        </div>
+        <div class="cardBody">
+          <div class="sets" id="sets"></div>
+            <div class="actionsRow">
+              <div class="actionsLeft">
+                <button id="btnAddWorkout" type="button" class="addSetText">+ Exercise</button>
+                <button id="btnAddSet" type="button" class="addSetText">+ Set</button>
+              </div>
+              <div class="actionsRight">
+                <button id="btnAddLink" type="button" class="actionLink">+ Link</button>
+                <button id="btnAddPhoto" type="button" class="actionLink photoLink">+ Photo</button>
+                <input id="photoInput" type="file" accept="image/*" style="display:none;">
+              </div>
+            </div>
+            <!-- Link panel (hidden until "Add link") -->
+            <div class="inlinePanel" id="videoPanel" style="display:none;">
+            <input class="input" id="videoUrl" placeholder="YouTube link"/>
+            <div class="videoBox" id="videoBox" style="display:none;">
+                <div class="aspect916">
+                <iframe id="videoFrame"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen></iframe>
+                </div>
+            </div>
+            </div>
+            <!-- Photo panel -->
+            <div class="inlineHint" id="photoHint" style="display:none;">
+            Tip: If you take photos, use a lower resolution (ex: 1080p or "Medium") so it stays under the 1MB limit.
+            </div>
+            <div class="photoBox" id="photoBox" style="display:none;">
+            <img id="photoImg" alt="Workout photo">
+            <button id="btnRemovePhoto" type="button" class="actionLink dangerLink">Remove photo</button>
+            </div>
+        </div>
+      </div>
+      <!-- CHART UNDER LOG -->
+      <div class="card">
+        <div class="cardHead">
+          <div class="left">
+            <div class="h">Progress</div>
+          </div>
+          <div class="chartControls" id="setFilters">
+            <div class="ctrl">
+                <span class="ctrlLabel">Sets</span>
+                <select id="setFilterSel" class="ctrlSelect" aria-label="Filter sets"></select>
+            </div>
+            <div class="ctrl">
+                <span class="ctrlLabel">Range</span>
+                <select id="rangeSel" class="ctrlSelect" aria-label="Range">
+                <option value="all">All time</option>
+                <option value="1w">1 week</option>
+                <option value="1m">1 month</option>
+                <option value="3m">3 months</option>
+                <option value="6m">6 months</option>
+                <option value="9m">9 months</option>
+                <option value="1y">1 year</option>
+                </select>
+            </div>
+            </div>
+        </div>
+        <div class="chartWrap">
+          <div class="canvasWrap chartGrid" id="canvasWrap">
+            <!-- Y axis labels (HTML, fixed size) -->
+            <div class="yAxis" id="yAxis"></div>
+            <!-- The canvas -->
+            <div class="chartCanvasWrap">
+              <canvas id="chart" width="1200" height="560"></canvas>
+
+              <!-- Trend toggle (bottom-right overlay) -->
+              <label class="trendToggle" title="Trendline">
+                <input id="trendToggle" type="checkbox" />
+                <span>Trend</span>
+              </label>
+
+              <!-- Trend rate (bottom-center overlay) -->
+              <div class="trendRate" id="trendRate" style="display:none;"></div>
+
+              <div class="tip" id="tip"></div>
+            </div>
+            <!-- X axis labels (HTML, fixed size) -->
+            <div class="xAxis" id="xAxis"></div>
+          </div>
+          <!-- Workout pills (centered under chart) -->
+          <div class="workoutPills" id="workoutPills" aria-label="Workout filter"></div>
+        </div>
+        <!-- LOGS LIST (UNDER CHART) -->
+        <div class="logsWrap">
+          <div class="logsHead">
+            <div class="logsTitle">Logs</div>
+          </div>
+          <div class="logsTable" id="logsTable"></div>
+          <div class="logsFoot">
+            <button class="btn btnGhost" id="btnShowAll" type="button" style="display:none;">Show all</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- SETTINGS MODAL -->
+<div class="modalBack" id="settingsBack" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Settings">
+    <div class="modalHead">
+      <div class="modalTitle">Settings</div>
+      <button class="iconBtn" id="btnCloseSettings" type="button" aria-label="Close settings">
+        <svg viewBox="0 0 24 24" fill="none" preserveAspectRatio="xMidYMid meet">
+          <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modalBody">
+      <!-- Challenge fields -->
+      <div id="settingsChallengeFields">
+        <div class="twoCol" style="margin-top:12px;">
+          <div class="field fieldDate">
+            <div class="label">Challenge start date</div>
+
+            <!-- SAME pattern as the main screen date chip -->
+            <div class="chip chipFull">
+              <input type="date" id="setStartDate">
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="label">Goal days</div>
+            <input type="number" id="setGoalDays" min="1" step="1" placeholder="156">
+          </div>
+        </div>
+      </div>
+      <!-- Name fields -->
+      <div id="settingsNameFields" style="display:none; margin-top:12px;">
+        <div class="field">
+          <div class="label">Display name</div>
+          <input type="text" id="setDisplayName" placeholder="Your name">
+        </div>
+      </div>
+      <!-- Mode switch (under fields) -->
+      <div class="settingsFooter">
+        <div class="segWrap underFields">
+          <div class="seg" role="tablist" aria-label="Title mode">
+            <button class="segBtn" id="titleModeChallenge" type="button" aria-selected="true">Challenge</button>
+            <button class="segBtn" id="titleModeName" type="button" aria-selected="false">Name</button>
+          </div>
+        </div>
+        <div class="authCenterRow">
+          <button class="btn btnPrimary" id="btnAuthCenter" type="button">
+            Login
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- TEMPLATES MODAL -->
+<div class="modalBack" id="templatesBack" aria-hidden="true">
+  <div class="modal">
+    <div class="modalHead">
+      <div class="modalTitle">Templates</div>
+      <button class="iconBtn" id="btnCloseTemplates" type="button" title="Close" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path fill="currentColor" d="M18.3 5.7a1 1 0 0 0-1.4 0L12 10.6 7.1 5.7a1 1 0 0 0-1.4 1.4l4.9 4.9-4.9 4.9a1 1 0 1 0 1.4 1.4l4.9-4.9 4.9 4.9a1 1 0 0 0 1.4-1.4L13.4 12l4.9-4.9a1 1 0 0 0 0-1.4Z"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modalBody">
+      <div class="field">
+        <div class="label">Save current day</div>
+        <div class="row rowTight">
+          <input id="tplName" class="input" placeholder="Template name"/>
+          <button id="btnTplSave" type="button" class="btn">Save</button>
+        </div>
+      </div>
+      <div class="field">
+        <div class="label">Apply template</div>
+        <div id="tplList" class="tplList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- AUTH MODAL -->
+<div class="modalBack" id="authBack" aria-hidden="true">
+  <div class="authShell" role="dialog" aria-modal="true" aria-label="Account">
+    <form class="authForm" id="authForm">
+      <button class="authClose" id="btnCloseAuth" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" preserveAspectRatio="xMidYMid meet">
+          <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <p id="heading">Login</p>
+      <div id="signedInView" style="display:none;" class="authSignedIn">
+        <div class="authPill" id="signedInEmail">Signed in</div>
+        <button class="authLinkBtn authDanger" id="btnDoLogout" type="button">Sign Out</button>
+      </div>
+      <div id="signedOutView">
+        <div class="authField">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 6.5A3.5 3.5 0 0 1 7.5 4h9A3.5 3.5 0 0 1 20 6.5v11A3.5 3.5 0 0 1 16.5 20h-9A3.5 3.5 0 0 1 4 17.5v-11Z" stroke="currentColor" stroke-width="2"/>
+            <path d="M6.5 7.5 12 12l5.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <input id="authEmail" autocomplete="username" placeholder="Email" type="email">
+        </div>
+        <div class="authField">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 11V8.5A5 5 0 0 1 12 3.5a5 5 0 0 1 5 5V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M6.5 11h11A2.5 2.5 0 0 1 20 13.5v5A2.5 2.5 0 0 1 17.5 21h-11A2.5 2.5 0 0 1 4 18.5v-5A2.5 2.5 0 0 1 6.5 11Z" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <input id="authPass" autocomplete="current-password" placeholder="Password" type="password">
+        </div>
+        <div class="authRow">
+          <button class="btn btnPrimary" id="btnDoLogin" type="button">Log in</button>
+          <button class="btn" id="btnDoSignup" type="button">Sign up</button>
+        </div>
+        <button class="authLinkBtn" id="btnDoForgot" type="button">Forgot password</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="toast" id="toast">Saved</div>
+<!-- PHOTO VIEWER (fullscreen) -->
+<div class="photoViewerBack" id="photoViewerBack" aria-hidden="true">
+  <div class="photoViewer" role="dialog" aria-modal="true" aria-label="Photo">
+    <button class="photoViewerClose" id="photoViewerClose" type="button" aria-label="Close photo">
+      <svg viewBox="0 0 24 24" fill="none" preserveAspectRatio="xMidYMid meet">
+        <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <img id="photoViewerImg" alt="Photo">
+  </div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script>
+const STORE_KEY = "pullup_daily_log_v3";
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+// iOS/PWA: prevent pinch zoom + double-tap zoom (best effort)
+(function(){
+  document.addEventListener("gesturestart", e => e.preventDefault(), { passive:false });
+  document.addEventListener("gesturechange", e => e.preventDefault(), { passive:false });
+  document.addEventListener("gestureend", e => e.preventDefault(), { passive:false });
+})();
+
+// --------------------
+// Firebase
+// --------------------
+const firebaseConfig = {
+  apiKey: "AIzaSyDMM8CBEziLWEntNixNbYnl0ckBGqDY_fk",
+  authDomain: "pull-up-log.firebaseapp.com",
+  projectId: "pull-up-log",
+  storageBucket: "pull-up-log.firebasestorage.app",
+  messagingSenderId: "671182560888",
+  appId: "1:671182560888:web:bd6d8a5cc1ce909f49d78d",
+  measurementId: "G-3MKG6GDBRZ"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+let fbUser = null;
+let cloudReady = false;
+auth.onAuthStateChanged(async (u)=>{
+  fbUser = u || null;
+  updateAuthButtonUI();
+  if(fbUser){
+    await cloudLoadAll();     // pull settings + logs
+    cloudReady = true;
+    toast("Synced");
+  }else{
+    cloudReady = false;
+  }
+});
+
+// Kill the initial "sweep" animation on refresh
+document.documentElement.classList.add("noIntro");
+requestAnimationFrame(()=>{
+  requestAnimationFrame(()=>{
+    document.documentElement.classList.remove("noIntro");
+  });
+});
+
+const $ = (sel, root=document)=> root.querySelector(sel);
+const $$ = (sel, root=document)=> Array.from(root.querySelectorAll(sel));
+const els = {
+  topTitle: $("#topTitle"),
+  dayHeader: $("#dayHeader"),
+  datePick: $("#datePick"),
+  sets: $("#sets"),
+  btnAddSet: $("#btnAddSet"),
+  btnAddWorkout: $("#btnAddWorkout"),
+  videoUrl: $("#videoUrl"),
+  videoBox: $("#videoBox"),
+  videoFrame: $("#videoFrame"),
+  setFilters: $("#setFilters"),
+    setFilterSel: $("#setFilterSel"),
+  rangeSel: $("#rangeSel"),
+  chart: $("#chart"),
+  canvasWrap: $("#canvasWrap"),
+    workoutPills: $("#workoutPills"),
+  tip: $("#tip"),
+  trendToggle: $("#trendToggle"),
+  trendRate: $("#trendRate"),
+  logsTable: $("#logsTable"),
+  btnShowAll: $("#btnShowAll"),
+  btnSettings: $("#btnSettings"),
+  settingsBack: $("#settingsBack"),
+  btnCloseSettings: $("#btnCloseSettings"),
+  btnLogout: $("#btnLogout"),
+  setStartDate: $("#setStartDate"),
+  setGoalDays: $("#setGoalDays"),
+  btnAuthCenter: $("#btnAuthCenter"),
+  toast: $("#toast"),
+  authBack: $("#authBack"),
+btnCloseAuth: $("#btnCloseAuth"),
+authTitle: $("#authTitle"),
+authForm: $("#authForm"),
+authEmail: $("#authEmail"),
+authPass: $("#authPass"),
+btnDoLogin: $("#btnDoLogin"),
+btnDoSignup: $("#btnDoSignup"),
+btnDoForgot: $("#btnDoForgot"),
+btnDoLogout: $("#btnDoLogout"),
+  btnAddLink: $("#btnAddLink"),
+  videoPanel: $("#videoPanel"),
+  btnAddPhoto: $("#btnAddPhoto"),
+  photoInput: $("#photoInput"),
+  photoHint: $("#photoHint"),
+  photoBox: $("#photoBox"),
+  photoImg: $("#photoImg"),
+  btnRemovePhoto: $("#btnRemovePhoto"),
+    photoViewerBack: $("#photoViewerBack"),
+  photoViewerClose: $("#photoViewerClose"),
+  photoViewerImg: $("#photoViewerImg"),
+btnTemplates: $("#btnTemplates"),
+templatesBack: $("#templatesBack"),
+btnCloseTemplates: $("#btnCloseTemplates"),
+tplName: $("#tplName"),
+btnTplSave: $("#btnTplSave"),
+tplList: $("#tplList"),
+  titleModeChallenge: $("#titleModeChallenge"),
+  titleModeName: $("#titleModeName"),
+  settingsChallengeFields: $("#settingsChallengeFields"),
+  settingsNameFields: $("#settingsNameFields"),
+  setDisplayName: $("#setDisplayName"),
+};
+let state = loadState();
+let ui = {
+  activeDate: toISO(new Date()),
+  editWorkoutIndex: -1,
+  // NEW: workouts draft
+  draftWorkouts: [],   // [{name:"Push", sets:[..]}]
+  draftVideo: "",
+  draftPhoto: "",
+  // chart filters
+  workoutMode: "all",  // "all" or workout name
+    workoutPillMode: "all", // "all" | "exercises"
+  filterMode: "all",   // "all" or "0","1",...
+  rangeMode: "all",
+  trendMode: false,
+  lastRawSeries: [],
+  points: [],
+  hoverIndex: -1,
+  chartAnimId: null,
+  lastChartKey: "",
+  // logs list
+  showAllLogs: false
+};
+function defaultState(){
+  const today = toISO(new Date());
+  return {
+    settings: {
+      startDate: today,
+      goalDays: 156,
+      // NEW (for greeting mode)
+      titleMode: "challenge",   // "challenge" | "name"
+      displayName: "",
+      username: "",
+      passHash: ""
+    },
+    logs: {},
+    templates: []
+  };
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return defaultState();
+    const s = JSON.parse(raw);
+    if(!s.settings) s.settings = defaultState().settings;
+    if(!s.logs) s.logs = {};
+    if(!Array.isArray(s.templates)) s.templates = [];
+    // Ensure defaults
+    if(typeof s.settings.titleMode !== "string") s.settings.titleMode = "challenge";
+    if(!["challenge","name"].includes(s.settings.titleMode)) s.settings.titleMode = "challenge";
+    if(typeof s.settings.displayName !== "string") s.settings.displayName = "";
+    if(!s.settings.startDate) s.settings.startDate = toISO(new Date());
+    if(typeof s.settings.goalDays !== "number") s.settings.goalDays = 156;
+    if(typeof s.settings.username !== "string") s.settings.username = "User";
+    if(typeof s.settings.passHash !== "string") s.settings.passHash = "";
+    return s;
+  }catch{
+    return defaultState();
+  }
+}
+function saveState(){
+  localStorage.setItem(STORE_KEY, JSON.stringify(state));
+}
+function toast(msg="Saved"){
+  els.toast.textContent = msg;
+  els.toast.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=> els.toast.classList.remove("show"), 1200);
+}
+function openAuth(){
+  const signedInView = $("#signedInView");
+  const signedOutView = $("#signedOutView");
+  const signedInEmail = $("#signedInEmail");
+  if(fbUser){
+    $("#heading").textContent = "Account";
+    signedInView.style.display = "flex";
+    signedOutView.style.display = "none";
+    signedInEmail.textContent = fbUser.email || "Signed in";
+  }else{
+    $("#heading").textContent = "Login";
+    signedInView.style.display = "none";
+    signedOutView.style.display = "block";
+    els.authEmail.value = "";
+    els.authPass.value = "";
+  }
+  els.authBack.classList.add("show");
+  els.authBack.setAttribute("aria-hidden","false");
+  if(!fbUser) setTimeout(()=> els.authEmail.focus(), 50);
+}
+function closeAuth(){
+  els.authBack.classList.remove("show");
+  els.authBack.setAttribute("aria-hidden","true");
+}
+// --------------------
+// Templates modal
+// --------------------
+function openTemplates(){
+  els.templatesBack.classList.add("show");
+  els.templatesBack.setAttribute("aria-hidden","false");
+  renderTemplatesList();
+  setTimeout(()=> els.tplName?.focus(), 50);
+}
+function closeTemplates(){
+  els.templatesBack.classList.remove("show");
+  els.templatesBack.setAttribute("aria-hidden","true");
+  if(els.tplName) els.tplName.value = "";
+}
+function renderTemplatesList(){
+  els.tplList.innerHTML = "";
+  if(!Array.isArray(state.templates) || !state.templates.length){
+    const empty = document.createElement("div");
+    empty.style.fontSize = "12px";
+    empty.style.color = "var(--muted)";
+    empty.textContent = "No templates yet";
+    els.tplList.appendChild(empty);
+    return;
+  }
+  state.templates.forEach((tpl, idx)=>{
+    const row = document.createElement("div");
+    row.className = "tplItem";
+    const totalReps = sumSets(collapseSetsWithMults(tpl.workouts || []));
+    row.innerHTML = `
+      <div style="min-width:0;">
+        <div class="tplName">${escapeHtml(tpl.name)}</div>
+        <div class="tplMeta">
+          ${tpl.workouts.length} exercise${tpl.workouts.length!==1?"s":""}
+          · ${totalReps} reps
+        </div>
+      </div>
+      <div class="tplBtns">
+        <button class="btn tplApply" data-act="apply">Apply</button>
+        <button class="iconBtn tplDel" data-act="del" title="Delete">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 3h6m-8 4h10m-9 0v13m8-13v13M10 7v13m4-13v13"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    `;
+    row.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button");
+      if(!btn) return;
+      if(btn.dataset.act === "apply"){
+        applyTemplateToDay(tpl);
+        closeTemplates();
+        toast("Template applied");
+      }
+      if(btn.dataset.act === "del"){
+        if(!confirm(`Delete template "${tpl.name}"?`)) return;
+        state.templates.splice(idx, 1);
+        saveState();
+        cloudSaveTemplates();
+        renderTemplatesList();
+      }
+    });
+    els.tplList.appendChild(row);
+  });
+}
+function setTitleMode(mode){
+  state.settings.titleMode = mode;
+  const isChallenge = mode === "challenge";
+  els.titleModeChallenge?.setAttribute("aria-selected", String(isChallenge));
+  els.titleModeName?.setAttribute("aria-selected", String(!isChallenge));
+  if(els.settingsChallengeFields) els.settingsChallengeFields.style.display = isChallenge ? "" : "none";
+  if(els.settingsNameFields) els.settingsNameFields.style.display = isChallenge ? "none" : "";
+}
+function saveTemplateFromCurrentDay(){
+  const name = (els.tplName.value || "").trim();
+  if(!name){ toast("Name required"); return; }
+  const tpl = {
+    id: crypto.randomUUID(),
+    name,
+    workouts: normalizeWorkouts(ui.draftWorkouts),
+    video: ui.draftVideo || "",
+    photo: ui.draftPhoto || ""
+  };
+  state.templates.push(tpl);
+  saveState();
+  cloudSaveTemplates();
+  els.tplName.value = "";
+  renderTemplatesList();
+  toast("Template saved");
+}
+function applyTemplateToDay(tpl){
+  if(!tpl) return;
+  ui.draftWorkouts = normalizeWorkouts(tpl.workouts || []);
+  ui.draftVideo = tpl.video || "";
+  ui.draftPhoto = tpl.photo || "";
+  if(!ui.draftWorkouts.length){
+    ui.draftWorkouts = [{ name:"Exercise", sets:[0] }];
+  }
+  renderLog();
+  commitDraft();
+}
+function openPhotoViewer(src){
+  if(!src) return;
+  els.photoViewerImg.src = src;
+  els.photoViewerBack.classList.add("show");
+  els.photoViewerBack.setAttribute("aria-hidden","false");
+}
+function closePhotoViewer(){
+  els.photoViewerBack.classList.remove("show");
+  els.photoViewerBack.setAttribute("aria-hidden","true");
+  els.photoViewerImg.src = "";
+}
+function updateAuthButtonUI(){
+  if(!els.btnAuthCenter) return;
+  const isLoggedIn = !!fbUser;
+  els.btnAuthCenter.textContent = isLoggedIn ? "Log out" : "Log in";
+  // style swap
+  els.btnAuthCenter.classList.toggle("btnPrimary", !isLoggedIn);
+  els.btnAuthCenter.classList.toggle("isLogout", isLoggedIn);
+}
+async function doLogin(){
+  const email = (els.authEmail.value || "").trim();
+  const pass  = (els.authPass.value || "").trim();
+  if(!email || !pass){ toast("Missing"); return; }
+  try{
+    await auth.signInWithEmailAndPassword(email, pass);
+    toast("Logged in");
+    closeAuth();
+  }catch(err){
+    toast(err?.message || "Login failed");
+  }
+}
+async function doSignup(){
+  const email = (els.authEmail.value || "").trim();
+  const pass  = (els.authPass.value || "").trim();
+  if(!email || !pass){ toast("Missing"); return; }
+  try{
+    await auth.createUserWithEmailAndPassword(email, pass);
+    toast("Account created");
+    closeAuth();
+  }catch(err){
+    toast(err?.message || "Sign up failed");
+  }
+}
+async function doForgot(){
+  const email = (els.authEmail.value || "").trim();
+  if(!email){ toast("Enter email"); return; }
+  try{
+    await auth.sendPasswordResetEmail(email);
+    toast("Reset sent");
+  }catch(err){
+    toast(err?.message || "Failed");
+  }
+}
+async function doLogout(){
+  try{
+    await auth.signOut();
+    toast("Logged out");
+    closeAuth();
+  }catch(err){
+    toast(err?.message || "Failed");
+  }
+}
+function userRef(){
+  return db.collection("users").doc(fbUser.uid);
+}
+function logsRef(){
+  return userRef().collection("logs");
+}
+async function cloudLoadAll(){
+  if(!fbUser) return;
+  // settings + templates
+  const sDoc = await userRef().get();
+  if(sDoc.exists){
+    const s = sDoc.data() || {};
+    if(s.startDate) state.settings.startDate = s.startDate;
+    if(typeof s.goalDays === "number") state.settings.goalDays = s.goalDays;
+    if(typeof s.titleMode === "string") state.settings.titleMode = s.titleMode;
+if(typeof s.displayName === "string") state.settings.displayName = s.displayName;
+    // templates (MUST be inside this block where "s" exists)
+    if(Array.isArray(s.templates)) state.templates = s.templates;
+  }
+  // logs (all)
+  const snap = await logsRef().get();
+  const nextLogs = {};
+  snap.forEach(doc=>{
+    const iso = doc.id; // YYYY-MM-DD
+    const d = doc.data() || {};
+    // workouts-first, but still read old docs that used "sets"
+    const workouts = Array.isArray(d.workouts)
+      ? d.workouts
+      : (Array.isArray(d.sets) ? [{ name:"Exercise", sets: d.sets }] : []);
+    const entry = {
+      workouts,
+      video: (d.video || ""),
+      photo: (d.photo || "")
+    };
+    if(isNonEmptyEntry(entry)){
+      nextLogs[iso] = entry;
+    }
+  });
+  state.logs = nextLogs;
+  saveState();
+  // refresh UI to reflect cloud
+  buildSetFilters();
+  loadDraftForDate(ui.activeDate || toISO(new Date()));
+}
+async function cloudSaveSettings(){
+  if(!fbUser) return;
+  await userRef().set({
+    startDate: state.settings.startDate,
+    goalDays: state.settings.goalDays,
+    // NEW
+    titleMode: state.settings.titleMode,
+    displayName: state.settings.displayName,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge:true });
+}
+async function cloudSaveTemplates(){
+  if(!fbUser) return;
+  await userRef().set({
+    templates: state.templates,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge:true });
+}
+async function cloudUpsertLog(iso, entry){
+  if(!fbUser) return;
+  // Back-compat: if someone passes entry.sets, convert to workouts
+  const workouts =
+    Array.isArray(entry.workouts) ? entry.workouts :
+    (Array.isArray(entry.sets) ? [{ name:"Exercise", sets: entry.sets }] : []);
+  await logsRef().doc(iso).set({
+    workouts: workouts,
+    video: entry.video || "",
+    photo: entry.photo || "",
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge:true });
+}
+async function cloudDeleteLog(iso){
+  if(!fbUser) return;
+  await logsRef().doc(iso).delete();
+}
+async function compressImageToUnder1MB(file){
+  // Firestore doc limit is ~1MB, and base64 inflates size,
+  // so keep it well under 1MB. Target ~700KB.
+  const TARGET = 700 * 1024;
+  const img = await fileToImage(file);
+  // start size clamp
+  let maxW = 1400;
+  let maxH = 1400;
+  // draw scaled
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  const scale = Math.min(1, maxW / img.width, maxH / img.height);
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  // Try different JPEG qualities until under target
+  let q = 0.86;
+  for(let i=0;i<10;i++){
+    const dataUrl = canvas.toDataURL("image/jpeg", q);
+    const bytes = approxDataUrlBytes(dataUrl);
+    if(bytes <= TARGET) return dataUrl;
+    q -= 0.08;
+    if(q < 0.35) break;
+  }
+  // If still too big, reduce dimensions once and try again
+  const canvas2 = document.createElement("canvas");
+  const ctx2 = canvas2.getContext("2d");
+  canvas2.width = Math.round(canvas.width * 0.75);
+  canvas2.height = Math.round(canvas.height * 0.75);
+  ctx2.drawImage(canvas, 0, 0, canvas2.width, canvas2.height);
+  let q2 = 0.78;
+  for(let i=0;i<10;i++){
+    const dataUrl = canvas2.toDataURL("image/jpeg", q2);
+    const bytes = approxDataUrlBytes(dataUrl);
+    if(bytes <= TARGET) return dataUrl;
+    q2 -= 0.08;
+    if(q2 < 0.35) break;
+  }
+  throw new Error("too_large");
+}
+function approxDataUrlBytes(dataUrl){
+  // data:image/jpeg;base64,XXXX
+  const b64 = (dataUrl.split(",")[1] || "");
+  return Math.floor(b64.length * 3 / 4);
+}
+function fileToImage(file){
+  return new Promise((resolve, reject)=>{
+    const r = new FileReader();
+    r.onerror = reject;
+    r.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=> resolve(img);
+      img.onerror = reject;
+      img.src = r.result;
+    };
+    r.readAsDataURL(file);
+  });
+}
+/* Date */
+function pad2(n){ return String(n).padStart(2,"0"); }
+function toISO(d){
+  const x = new Date(d);
+  return `${x.getFullYear()}-${pad2(x.getMonth()+1)}-${pad2(x.getDate())}`;
+}
+function fromISO(iso){
+  const [y,m,d] = iso.split("-").map(Number);
+  return new Date(y, m-1, d);
+}
+function daysBetween(a,b){
+  const da = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+  const db = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+  return Math.round((db - da)/86400000);
+}
+function prettyDayTitle(iso){
+  const d = fromISO(iso);
+  const isToday = iso === toISO(new Date());
+  if(isToday) return "Today";
+  return d.toLocaleDateString(undefined, { weekday:"long", month:"short", day:"numeric" });
+}
+function prettyShortDate(iso){
+  const d = fromISO(iso);
+  return d.toLocaleDateString(undefined, {month:"short", day:"numeric"});
+}
+function entryToWorkouts(entry){
+  if(!entry) return [];
+  if(Array.isArray(entry.workouts)) return entry.workouts;
+  // Back-compat: old entries used entry.sets
+  const sets = Array.isArray(entry.sets) ? entry.sets.slice() : [];
+  if(sets.length) return [{ name: "Exercise", sets }];
+  return [];
+}
+function normalizeSets(sets){
+  const out = (sets||[]).map(v => Math.max(0, Math.min(999, Number(v)||0)));
+  while(out.length && out[out.length-1] === 0) out.pop();
+  return out;
+}
+function normalizeMults(mults, sets){
+  const n = Array.isArray(sets) ? sets.length : 0;
+  const out = Array.isArray(mults) ? mults.slice(0, n) : [];
+  while(out.length < n) out.push(1);
+  for(let i=0;i<out.length;i++){
+    const v = Number(out[i]) || 1;
+    out[i] = Math.max(1, Math.min(10, v));
+  }
+  return out;
+}
+function normalizeWorkouts(workouts){
+  const out = (workouts||[])
+    .map(w => {
+      const sets = normalizeSets(w?.sets || []);
+      return {
+        name: String(w?.name || "Exercise").trim() || "Exercise",
+        sets,
+        mults: normalizeMults(w?.mults || [], sets)
+      };
+    })
+    // keep workouts that have reps OR keep empty if it's the only workout (so UI doesn't disappear)
+    .filter(w => w.sets.some(v => (Number(v)||0) > 0) || true);
+  // If everything is totally empty, return []
+  const hasAny = out.some(w => w.sets.some(v => (Number(v)||0) > 0));
+  return hasAny ? out : [];
+}
+function isNonEmptyEntry(entry){
+  if(!entry) return false;
+  const workouts = entryToWorkouts(entry);
+  const hasReps = workouts.some(w => (w.sets||[]).some(v => (Number(v)||0) > 0));
+  const hasVid = !!(entry.video && String(entry.video).trim());
+  const hasPhoto = !!(entry.photo && String(entry.photo).trim());
+  return hasReps || hasVid || hasPhoto;
+}
+function sumSets(sets){
+  return (sets||[]).reduce((a,b)=>a+(Number(b)||0),0);
+}
+function collapseSetsWithMults(workouts){
+  const list = Array.isArray(workouts) ? workouts : [];
+  let maxLen = 0;
+  list.forEach(w=>{
+    const n = Array.isArray(w?.sets) ? w.sets.length : 0;
+    if(n > maxLen) maxLen = n;
+  });
+  const sums = Array(maxLen).fill(0);
+  list.forEach(w=>{
+    const sets = Array.isArray(w?.sets) ? w.sets : [];
+    const mults = normalizeMults(w?.mults || [], sets);
+    for(let i=0;i<sets.length;i++){
+      const reps = Number(sets[i]) || 0;
+      const mul  = Number(mults[i]) || 1;
+      sums[i] += reps * mul;
+    }
+  });
+  return sums;
+}
+function getAllLogDates(){
+  return Object.keys(state.logs)
+    .filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k))
+    .sort();
+}
+function getMostRecentPriorDate(iso){
+  const dates = getAllLogDates().filter(d => d < iso);
+  return dates.length ? dates[dates.length-1] : null;
+}
+/* Day title */
+function getTimeGreeting(){
+  const h = new Date().getHours();
+  if(h < 12) return "Good Morning";
+  if(h < 17) return "Good Afternoon";
+  if(h < 21) return "Good Evening";
+  return "Good Night";
+}
+/* Title */
+function updateDayCounterTitle(){
+  const mode = state.settings.titleMode || "challenge";
+  const name = String(state.settings.displayName || "").trim();
+  if(mode === "name" && name){
+    els.topTitle.textContent = `${getTimeGreeting()} ${name}`;
+  }else{
+    const start = fromISO(state.settings.startDate);
+    const active = fromISO(ui.activeDate || toISO(new Date()));
+    const dayNum = Math.max(1, daysBetween(start, active) + 1);
+    els.topTitle.textContent = `Day ${dayNum}`;
+  }
+  if(els.dayHeader){
+    els.dayHeader.textContent = prettyDayTitle(ui.activeDate);
+  }
+}
+function loadDraftForDate(iso){
+  ui.activeDate = iso;
+  els.datePick.value = iso;
+  updateDayCounterTitle();
+  const saved = state.logs[iso];
+  if(saved && isNonEmptyEntry(saved)){
+    ui.draftWorkouts = normalizeWorkouts(entryToWorkouts(saved));
+    ui.draftVideo = saved.video || "";
+    ui.draftPhoto = saved.photo || "";
+  }else{
+    // Try to preset from yesterday or most recent prior day
+    let presetWorkouts = null;
+    const y = toISO(new Date(fromISO(iso).getTime() - 86400000));
+    if(state.logs[y] && isNonEmptyEntry(state.logs[y])){
+      presetWorkouts = normalizeWorkouts(entryToWorkouts(state.logs[y]));
+    }
+    if(!presetWorkouts){
+      const prior = getMostRecentPriorDate(iso);
+      if(prior && state.logs[prior] && isNonEmptyEntry(state.logs[prior])){
+        presetWorkouts = normalizeWorkouts(entryToWorkouts(state.logs[prior]));
+      }
+    }
+    ui.draftWorkouts = presetWorkouts ? presetWorkouts : [];
+    ui.draftVideo = "";
+    ui.draftPhoto = "";
+  }
+  // Ensure at least one workout exists for editing
+  if(!ui.draftWorkouts.length){
+    ui.draftWorkouts = [{ name: "Exercise", sets: [0], mults: [1] }];
+  }else{
+    if(!ui.draftWorkouts[0].sets.length) ui.draftWorkouts[0].sets = [0];
+    if(!Array.isArray(ui.draftWorkouts[0].mults) || !ui.draftWorkouts[0].mults.length) ui.draftWorkouts[0].mults = [1];
+  }
+  renderLog();
+  buildSetFilters();
+  renderChart();
+  renderLogsList();
+}
+/* Commit draft to storage, but only if non-empty */
+function commitDraft(){
+  const iso = ui.activeDate;
+  const workouts = normalizeWorkouts(ui.draftWorkouts);
+  const video = (ui.draftVideo || "").trim();
+  const photo = (ui.draftPhoto || "").trim();
+  const entry = { workouts, video, photo };
+  if(isNonEmptyEntry(entry)){
+    state.logs[iso] = entry;
+  }else{
+    delete state.logs[iso];
+  }
+  saveState();
+  buildSetFilters();
+  renderChart();
+  renderLogsList();
+  // Firestore sync (minimal)
+  if(fbUser){
+    if(isNonEmptyEntry(entry)){
+      cloudUpsertLog(iso, entry).catch(()=>{});
+    }else{
+      cloudDeleteLog(iso).catch(()=>{});
+    }
+  }
+}
+function renderLog(){
+  els.sets.innerHTML = "";
+  // safety
+  if(!Array.isArray(ui.draftWorkouts) || !ui.draftWorkouts.length){
+    ui.draftWorkouts = [{ name:"Exercise", sets:[0], mults:[1] }];
+  }
+  ui.draftWorkouts.forEach((w, wIdx)=>{
+    const CAN_SWIPE = canSwipeTouchOnly();
+
+    let workoutWrap = null;
+    let host = els.sets;
+
+    if(CAN_SWIPE){
+      workoutWrap = document.createElement("div");
+      workoutWrap.className = "workoutSwipeWrap";
+      workoutWrap.dataset.open = "0";
+
+      const action = document.createElement("div");
+      action.className = "workoutSwipeAction";
+
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "workoutSwipeDeleteBtn";
+      delBtn.textContent = "Delete";
+      delBtn.addEventListener("click", (e)=>{
+        e.stopPropagation();
+        deleteWorkoutByIndex(wIdx);
+      });
+
+      action.appendChild(delBtn);
+
+      host = document.createElement("div");
+      host.className = "workoutSwipeFront";
+
+      workoutWrap.appendChild(action);
+      workoutWrap.appendChild(host);
+    }
+
+    // Workout header row
+    const head = document.createElement("div");
+    head.className = "workoutHeadRow";
+    head.innerHTML = `
+      <div style="min-width:0;">
+        <button class="workoutTitleBtn" type="button" data-act="rename">
+          ${escapeHtml(w.name || "Exercise")}
+        </button>
+      </div>
+
+      <div class="workoutRight">
+        ${
+          canTouchReorder()
+            ? `
+        <button class="workoutDrag" type="button" data-act="drag" aria-label="Reorder exercise">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M7 5h2v2H7V5zm8 0h2v2h-2V5zM7 9h2v2H7V9zm8 0h2v2h-2V9zM7 13h2v2H7v-2zm8 0h2v2h-2v-2zM7 17h2v2H7v-2zm8 0h2v2h-2v-2z"/>
+          </svg>
+        </button>
+            `
+            : ""
+        }
+
+        <button class="trashBtn" type="button" data-act="delWorkout" aria-label="Delete workout">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 3h6m-8 4h10m-9 0v13m8-13v13M10 7v13m4-13v13"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    `;
+
+    head.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button");
+      if(!btn) return;
+      const act = btn.dataset.act;
+      if(act === "rename"){
+        const titleBtn = head.querySelector('.workoutTitleBtn');
+        if(!titleBtn) return;
+        // Prevent double-input
+        if(head.querySelector(".workoutTitleInput")) return;
+        const input = document.createElement("input");
+        input.className = "workoutTitleInput";
+        input.type = "text";
+        input.value = ui.draftWorkouts[wIdx].name || "Exercise";
+        input.maxLength = 40;
+        // swap button → input
+        titleBtn.replaceWith(input);
+        input.focus();
+        input.select();
+        const save = ()=>{
+          const next = (input.value || "").trim() || "Exercise";
+          ui.draftWorkouts[wIdx].name = next;
+          renderLog();
+          commitDraft();
+        };
+        const cancel = ()=>{
+          renderLog(); // just re-render without saving changes
+        };
+        input.addEventListener("keydown", (ev)=>{
+          if(ev.key === "Enter"){ ev.preventDefault(); save(); }
+          if(ev.key === "Escape"){ ev.preventDefault(); cancel(); }
+        });
+        input.addEventListener("blur", save);
+        return;
+      }
+      if(act === "delWorkout"){
+        // Don't allow deleting the last workout (keep UI stable)
+        if(ui.draftWorkouts.length <= 1){
+          ui.draftWorkouts[0] = { name:"Exercise", sets:[0] };
+        }else{
+          ui.draftWorkouts.splice(wIdx, 1);
+        }
+        renderLog();
+        commitDraft();
+        return;
+      }
+    });
+    host.appendChild(head);
+    attachWorkoutDrag(head, wIdx);
+
+    // Auto-enter edit mode for newly added workout
+if(ui.editWorkoutIndex === wIdx){
+  ui.editWorkoutIndex = -1;
+  // click the title button to reuse the inline rename behavior
+  const t = head.querySelector('.workoutTitleBtn');
+  if(t){
+    t.click();
+  }
+}
+    // Sets inside workout
+    const sets = Array.isArray(w.sets) ? w.sets.slice() : [];
+    if(sets.length === 0) sets.push(0);
+    sets.forEach((rep, sIdx)=>{
+      const row = document.createElement("div");
+      row.className = "setRow indent";
+      // ensure mults exists + aligns to sets length
+      if(!Array.isArray(ui.draftWorkouts[wIdx].mults)) ui.draftWorkouts[wIdx].mults = [];
+      ui.draftWorkouts[wIdx].mults = ui.draftWorkouts[wIdx].mults.slice(0, sets.length);
+      while(ui.draftWorkouts[wIdx].mults.length < sets.length) ui.draftWorkouts[wIdx].mults.push(1);
+      const mul = Number(ui.draftWorkouts[wIdx].mults[sIdx]) || 1;
+      row.innerHTML = `
+        <div class="setLeft">
+          <button class="mulBtn" type="button" data-act="mul" aria-label="Repeat set">
+            ${
+              (mul > 1)
+                ? `<span class="mulText">${mul}x</span>`
+                : `<span class="mulText" style="font-size:16px; font-weight:600; color:var(--muted);">${isIOS ? "\u21BB" : "\u21AA"}</span>`
+
+            }
+          </button>
+          <div class="setLabel">
+            <div class="name">Set ${sIdx+1}</div>
+          </div>
+        </div>
+        <div class="stepper">
+          <button class="stepBtn" type="button" data-act="dec">−</button>
+          <div class="repNum">${Number(rep)||0}</div>
+          <button class="stepBtn" type="button" data-act="inc">+</button>
+        </div>
+      `;
+      row.addEventListener("click", (e)=>{
+        const btn = e.target.closest("button");
+        if(!btn) return;
+        const act = btn.dataset.act;
+        const wRef = ui.draftWorkouts[wIdx];
+        const sets = wRef.sets;
+        if(!Array.isArray(wRef.mults)) wRef.mults = [];
+        wRef.mults = wRef.mults.slice(0, sets.length);
+        while(wRef.mults.length < sets.length) wRef.mults.push(1);
+        const cur = Number(sets?.[sIdx]) || 0;
+        if(act === "mul"){
+          const curM = Number(wRef.mults?.[sIdx]) || 1;
+          wRef.mults[sIdx] = (curM >= 10) ? 1 : (curM + 1);
+          renderLog();
+          commitDraft();
+          return;
+        }
+        if(act === "inc"){
+          sets[sIdx] = Math.min(999, cur + 1);
+        }
+        if(act === "dec"){
+          if(cur <= 1){
+            // remove the set entirely
+            sets.splice(sIdx, 1);
+            wRef.mults.splice(sIdx, 1);
+            // always keep at least one set so UI doesn't collapse
+            if(sets.length === 0){
+              sets.push(0);
+              wRef.mults = [1];
+            }
+          }else{
+            sets[sIdx] = cur - 1;
+          }
+        }
+        renderLog();
+        commitDraft();
+      });
+      host.appendChild(row);
+    });
+
+    if(workoutWrap){
+      attachSwipeToWorkout(workoutWrap, host, wIdx);
+      els.sets.appendChild(workoutWrap);
+    }
+  });
+  // -----------------------
+  // Video (kept minimized)
+  // -----------------------
+  els.videoUrl.value = ui.draftVideo || "";
+  const id = youtubeIdFromUrl(ui.draftVideo || "");
+  if(id){
+    els.videoBox.style.display = "block";
+    els.videoFrame.src = `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1`;
+  }else{
+    els.videoBox.style.display = "none";
+    els.videoFrame.src = "";
+  }
+  els.videoPanel.style.display = "none";
+  // -----------------------
+  // Photo (kept minimized)
+  // -----------------------
+  els.photoImg.src = ui.draftPhoto ? ui.draftPhoto : "";
+  els.photoBox.style.display = "none";
+  els.photoHint.style.display = "none";
+  // Button labels
+  els.btnAddLink.textContent  = ui.draftVideo ? "Open link" : "+ Link";
+  els.btnAddPhoto.textContent = ui.draftPhoto ? "Open photo" : "+ Photo";
+}
+
+function canTouchReorder(){
+  return (
+    window.matchMedia("(pointer: coarse)").matches &&
+    window.matchMedia("(hover: none)").matches
+  );
+}
+
+function attachWorkoutDrag(head, wIdx){
+  if(!canTouchReorder()) return;
+
+  const handle = head.querySelector(".workoutDrag");
+  if(!handle) return;
+
+  // stop the normal header click handler from treating this as rename/delete
+  handle.addEventListener("click", (e)=>{ e.stopPropagation(); });
+
+  handle.addEventListener("pointerdown", (e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+
+    const startIndex = wIdx;
+    const workoutCount = ui.draftWorkouts.length;
+    if(workoutCount <= 1) return;
+
+    // snapshot current head rects (in order)
+    const heads = Array.from(document.querySelectorAll("#sets .workoutHeadRow"));
+    const rects = heads.map(h => h.getBoundingClientRect());
+    const centers = rects.map(r => (r.top + r.bottom) / 2);
+
+    // ghost
+    const ghost = document.createElement("div");
+    ghost.className = "workoutDragGhost";
+    const ghostRow = head.cloneNode(true);
+    ghost.appendChild(ghostRow);
+    document.body.appendChild(ghost);
+
+    const grabOffsetY = e.clientY - rects[startIndex].top;
+
+    let currentTarget = startIndex;
+
+    const clearTargets = ()=>{
+      heads.forEach(h => h.classList.remove("dragTarget"));
+    };
+
+    const setTarget = (idx)=>{
+      clearTargets();
+      if(heads[idx]) heads[idx].classList.add("dragTarget");
+    };
+
+    const moveGhost = (clientX, clientY)=>{
+      const x = 14; // keep it aligned to your centered column padding
+      const y = clientY - grabOffsetY;
+      ghost.style.transform = `translate(${x}px, ${y}px)`;
+    };
+
+    const pickTargetIndex = (y)=>{
+      // choose nearest center
+      let best = 0;
+      let bestD = Infinity;
+      for(let i=0;i<centers.length;i++){
+        const d = Math.abs(y - centers[i]);
+        if(d < bestD){ bestD = d; best = i; }
+      }
+      return best;
+    };
+
+    moveGhost(e.clientX, e.clientY);
+    setTarget(startIndex);
+
+    const onMove = (ev)=>{
+      moveGhost(ev.clientX, ev.clientY);
+      const idx = pickTargetIndex(ev.clientY);
+      if(idx !== currentTarget){
+        currentTarget = idx;
+        setTarget(currentTarget);
+      }
+    };
+
+    const onUp = ()=>{
+      document.removeEventListener("pointermove", onMove, { passive:false });
+      document.removeEventListener("pointerup", onUp, true);
+      document.removeEventListener("pointercancel", onUp, true);
+
+      clearTargets();
+      ghost.remove();
+
+      if(currentTarget !== startIndex){
+        const moved = ui.draftWorkouts.splice(startIndex, 1)[0];
+        ui.draftWorkouts.splice(currentTarget, 0, moved);
+        renderLog();
+        commitDraft();
+      }
+    };
+
+    document.addEventListener("pointermove", onMove, { passive:false });
+    document.addEventListener("pointerup", onUp, true);
+    document.addEventListener("pointercancel", onUp, true);
+  }, { passive:false });
+}
+
+// tiny helper used above
+function escapeHtml(s){
+  return String(s||"").replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+}
+/* YouTube parsing */
+function youtubeIdFromUrl(url){
+  if(!url) return "";
+  try{
+    const u = new URL(url);
+    if(u.hostname.includes("youtu.be")){
+      return u.pathname.replace("/","").trim() || "";
+    }
+    if(u.hostname.includes("youtube.com")){
+      const v = u.searchParams.get("v");
+      if(v) return v;
+      const m = u.pathname.match(/\/shorts\/([a-zA-Z0-9_-]{6,})/);
+      if(m) return m[1];
+      const e = u.pathname.match(/\/embed\/([a-zA-Z0-9_-]{6,})/);
+      if(e) return e[1];
+    }
+    return "";
+  }catch{
+    if(/^[a-zA-Z0-9_-]{10,}$/.test(url.trim())) return url.trim();
+    return "";
+  }
+}
+function getWorkoutNamesFromLogs(){
+  const names = new Set();
+  // logs
+  for(const d of Object.keys(state.logs)){
+    const e = state.logs[d];
+    if(!e || !isNonEmptyEntry(e)) continue;
+    entryToWorkouts(e).forEach(w=>{
+      const n = String(w?.name || "").trim();
+      if(n) names.add(n);
+    });
+  }
+  // current draft (so brand-new workouts appear immediately)
+  (ui.draftWorkouts||[]).forEach(w=>{
+    const n = String(w?.name || "").trim();
+    if(n) names.add(n);
+  });
+  return Array.from(names).sort((a,b)=>a.localeCompare(b));
+}
+function renderWorkoutPills(){
+  if(!els.workoutPills) return;
+  const names = getWorkoutNamesFromLogs();
+  // If current selection no longer exists, fall back to All
+  if(ui.workoutMode !== "all" && !names.includes(ui.workoutMode)){
+    ui.workoutMode = "all";
+  }
+  // Build: Row 1 (All | Exercises)
+  const stack = document.createElement("div");
+  stack.className = "workoutPillsStack";
+  const row1 = document.createElement("div");
+  row1.className = "workoutPillsInner";
+  const mkBtn = (label, isOn, onClick)=>{
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "pillBtn" + (isOn ? " on" : "");
+    b.textContent = label;
+    b.addEventListener("click", onClick);
+    return b;
+  };
+  const allOn = (ui.workoutPillMode === "all");
+  const exOn  = (ui.workoutPillMode === "exercises");
+  row1.appendChild(mkBtn("All", allOn, ()=>{
+    ui.workoutPillMode = "all";
+    ui.workoutMode = "all";
+    buildSetFilters();
+    renderChart();
+  }));
+  row1.appendChild(mkBtn("Exercises", exOn, ()=>{
+    ui.workoutPillMode = "exercises";
+    // keep current selection if it still exists; otherwise default to All
+    if(ui.workoutMode !== "all" && !names.includes(ui.workoutMode)) ui.workoutMode = "all";
+    buildSetFilters();
+    renderChart();
+  }));
+  stack.appendChild(row1);
+  // Row 2 (only when Exercises selected): All + names (alphabetical)
+  if(ui.workoutPillMode === "exercises"){
+    const row2 = document.createElement("div");
+    row2.className = "workoutPillsInner";
+    names.forEach(n=>{
+      row2.appendChild(mkBtn(n, ui.workoutMode === n, ()=>{
+        ui.workoutPillMode = "exercises";
+        ui.workoutMode = n;
+        buildSetFilters();
+        renderChart();
+      }));
+    });
+    stack.appendChild(row2);
+  }
+  els.workoutPills.innerHTML = "";
+  els.workoutPills.appendChild(stack);
+}
+function maxSetsInData(){
+  let m = 0;
+  for(const d of Object.keys(state.logs)){
+    const e = state.logs[d];
+    if(!e || !isNonEmptyEntry(e)) continue;
+    const workouts = entryToWorkouts(e);
+    workouts.forEach(w=>{
+      if(ui.workoutMode !== "all" && String(w.name||"").trim() !== ui.workoutMode) return;
+      const n = Array.isArray(w.sets) ? w.sets.length : 0;
+      if(n > m) m = n;
+    });
+  }
+  return m;
+}
+function normalizeTemplateWorkouts(workouts){
+  const out = normalizeWorkouts(workouts);
+  // Templates should not store "empty placeholder" sets.
+  // If a workout has only zeros, remove it.
+  const cleaned = out
+    .map(w => ({ name: w.name, sets: (w.sets||[]).filter(v => (Number(v)||0) > 0) }))
+    .filter(w => w.sets.length > 0);
+  return cleaned;
+}
+function buildSetFilters(){
+  renderWorkoutPills();
+  const max = maxSetsInData();
+  // Filter dropdown (All / 1 / 2 / 3...)
+  const sel = els.setFilterSel;
+  sel.innerHTML = "";
+  const addOpt = (label, val)=>{
+    const o = document.createElement("option");
+    o.value = String(val);
+    o.textContent = label;
+    sel.appendChild(o);
+  };
+  addOpt("All", "all");
+  for(let i=0;i<max;i++){
+    addOpt(String(i+1), String(i));
+  }
+  // keep filterMode valid
+  if(ui.filterMode !== "all"){
+    const idx = Number(ui.filterMode);
+    if(!Number.isFinite(idx) || idx < 0 || idx >= max){
+      ui.filterMode = "all";
+    }
+  }
+  sel.value = ui.filterMode;
+  // Range dropdown
+  if(!els.rangeSel.value) els.rangeSel.value = "all";
+  if(!["all","1w","1m","3m","6m","9m","1y"].includes(ui.rangeMode)){
+    ui.rangeMode = "all";
+  }
+  els.rangeSel.value = ui.rangeMode;
+}
+function valueForEntry(entry){
+  if(!entry) return { y:0, sets:[] };
+  const workouts = entryToWorkouts(entry);
+  const chosen = (ui.workoutMode === "all")
+    ? workouts
+    : workouts.filter(w => String(w.name||"").trim() === ui.workoutMode);
+  const sums = collapseSetsWithMults(chosen);
+  if(ui.filterMode === "all"){
+    return { y: sumSets(sums), sets: sums };
+  }
+  const idx = Number(ui.filterMode);
+  const y = (Number.isFinite(idx) && idx >= 0) ? (Number(sums[idx]) || 0) : 0;
+  return { y, sets: sums };
+}
+/* Build chart series from saved logs only */
+function buildSeries(){
+  const loggedDates = getAllLogDates().filter(d=>{
+    const e = state.logs[d];
+    return e && isNonEmptyEntry(e);
+  });
+  if(loggedDates.length === 0) return [];
+  const { startISO, endISO } = getRangeWindow(loggedDates);
+  const allDays = enumerateDays(startISO, endISO);
+  return allDays.map(d=>{
+    const { y, sets } = valueForEntry(state.logs[d]);
+    return { date:d, y, sets };
+  });
+}
+function getRangeWindow(loggedDates){
+  // Always anchor to most recent logged date
+  const endISO = loggedDates[loggedDates.length - 1];
+  if((ui.rangeMode || "all") === "all"){
+    return { startISO: loggedDates[0], endISO };
+  }
+  const map = {
+    "1w": 7,
+    "1m": 30,
+    "3m": 90,
+    "6m": 182,
+    "9m": 273,
+    "1y": 365
+  };
+  const days = map[ui.rangeMode];
+  if(!days) return { startISO: loggedDates[0], endISO };
+  const end = fromISO(endISO);
+  const start = new Date(end);
+  start.setDate(start.getDate() - (days - 1));
+  return { startISO: toISO(start), endISO };
+}
+function enumerateDays(startISO, endISO){
+  const out = [];
+  let d = fromISO(startISO);
+  const end = fromISO(endISO);
+  // normalize to midnight
+  d = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const e = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+  while(d <= e){
+    out.push(toISO(d));
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
+function applyRangeToDates(dates){
+  const mode = ui.rangeMode || "all";
+  if(mode === "all") return dates;
+  if(!dates || !dates.length) return dates;
+  const map = {
+    "1w": 7,
+    "1m": 30,
+    "3m": 90,
+    "6m": 182,
+    "9m": 273,
+    "1y": 365
+  };
+  const days = map[mode];
+  if(!days) return dates;
+  // Anchor range to the MOST RECENT logged date (last point), not the date picker
+  const endISO = dates[dates.length - 1];
+  const end = fromISO(endISO);
+  const start = new Date(end);
+  start.setDate(start.getDate() - (days - 1));
+  return dates.filter(iso=>{
+    const d = fromISO(iso);
+    return d >= start && d <= end;
+  });
+}
+/* Chart drawing + tooltip hit-test */
+function cssVar(name){
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+function dayDiff(aISO, bISO){
+  // aISO -> bISO in whole days
+  const a = fromISO(aISO);
+  const b = fromISO(bISO);
+  return Math.round((b - a) / 86400000);
+}
+function shortUnitForWorkout(name){
+  const n = String(name || "").trim();
+  if(!n || n === "all") return "reps";
+  const low = n.toLowerCase();
+  if(low.includes("pull")) return "PU";
+  const letters = n.split(/\s+/).filter(Boolean).map(w=>w[0]).join("").toUpperCase();
+  return letters.slice(0,3) || "reps";
+}
+function computeTrendLine(raw){
+  // Use only actual logged points (y>0) so blanks don't drag the line down
+  const pts = (raw || []).filter(p => (Number(p.y) || 0) > 0);
+  if(pts.length < 2) return null;
+
+  const x0ISO = raw[0].date;
+  const xs = pts.map(p=> dayDiff(x0ISO, p.date));
+  const ys = pts.map(p=> Number(p.y) || 0);
+
+  const n = xs.length;
+  const meanX = xs.reduce((a,v)=>a+v,0) / n;
+  const meanY = ys.reduce((a,v)=>a+v,0) / n;
+
+  let num = 0, den = 0;
+  for(let i=0;i<n;i++){
+    const dx = xs[i] - meanX;
+    num += dx * (ys[i] - meanY);
+    den += dx * dx;
+  }
+  if(!den) return null;
+
+  const slopePerDay = num / den;
+  const intercept = meanY - slopePerDay * meanX;
+
+  const startISO = raw[0].date;
+  const endISO = raw[raw.length - 1].date;
+  const xEnd = dayDiff(startISO, endISO);
+
+  const yStart = intercept;
+  const yEnd = intercept + slopePerDay * xEnd;
+
+  return {
+    line: [
+      { date: startISO, y: yStart },
+      { date: endISO,   y: yEnd }
+    ],
+    slopePerDay
+  };
+}
+function updateTrendRateOverlay(slopePerDay){
+  if(!els.trendRate) return;
+
+  if(!ui.trendMode || !Number.isFinite(slopePerDay)){
+    els.trendRate.style.display = "none";
+    return;
+  }
+
+  const perWeek = slopePerDay * 7;
+  const sign = perWeek > 0 ? "+" : (perWeek < 0 ? "−" : "");
+  const abs = Math.abs(perWeek);
+
+  const nice =
+    abs >= 10 ? String(Math.round(abs)) :
+    String(Math.round(abs * 10) / 10);
+
+  const unit = (ui.workoutMode === "all")
+    ? "reps"
+    : shortUnitForWorkout(ui.workoutMode);
+
+  els.trendRate.textContent = `${sign}${nice} ${unit}/wk`;
+  els.trendRate.style.display = "block";
+}
+function renderChart(){
+  const raw = buildSeries();
+  ui.lastRawSeries = raw;
+
+  const trend = ui.trendMode ? computeTrendLine(raw) : null;
+
+  // B) show data + trendline
+  drawChartSmoothGreen(raw, trend ? trend.line : null, !!ui.trendMode);
+
+  updateTrendRateOverlay(trend ? trend.slopePerDay : null);
+}
+function updateAxisLabels(yMin, yMax, pxy){
+  const yEl = document.getElementById("yAxis");
+  const xEl = document.getElementById("xAxis");
+  if(!yEl || !xEl) return;
+  // ----- Y axis ticks (same logic as before, just HTML) -----
+  const ticks = 5;
+  const outY = [];
+  for(let i=0;i<=ticks;i++){
+    const v = yMax - ((yMax - yMin) * (i/ticks));
+    outY.push(`<span>${Math.round(v)}</span>`);
+  }
+  yEl.innerHTML = outY.join("");
+  // ----- X axis labels (start / middle / end based on filtered range) -----
+  if(!pxy || !pxy.length){
+    xEl.innerHTML = "";
+    return;
+  }
+  const startISO = pxy[0].date;
+  const endISO   = pxy[pxy.length-1].date;
+  const midISO   = pxy[Math.floor((pxy.length-1)/2)].date;
+  const fmt = (iso)=> fromISO(iso).toLocaleDateString(undefined, {month:"short", day:"numeric"});
+  const startTxt = fmt(startISO);
+  const endTxt   = fmt(endISO);
+  // If only 1 point, show it centered-ish (still using space-between)
+  if(pxy.length === 1){
+    xEl.innerHTML = `<span>${startTxt}</span><span></span><span></span>`;
+    return;
+  }
+  // If only 2 points, just show start/end
+  if(pxy.length === 2){
+    xEl.innerHTML = `<span>${startTxt}</span><span></span><span>${endTxt}</span>`;
+    return;
+  }
+  // 3+ points: show start / mid / end
+  const midTxt = fmt(midISO);
+  xEl.innerHTML = `<span>${startTxt}</span><span>${midTxt}</span><span>${endTxt}</span>`;
+}
+function clipRoundedRect(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+  ctx.clip();
+}
+function drawChartSmoothGreen(data, trendLine, trendOn){
+  const canvas = els.chart;
+  const ctx = canvas.getContext("2d");
+
+  // -----------------------------
+  // Canvas sizing (CSS pixels)
+  // -----------------------------
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = Math.max(1, Math.round(rect.width));
+  const cssH = Math.max(1, Math.round(rect.height));
+
+  if(
+    canvas.width  !== Math.round(cssW * dpr) ||
+    canvas.height !== Math.round(cssH * dpr)
+  ){
+    canvas.width  = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+  }
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = cssW, h = cssH;
+
+  // -----------------------------
+  // CHANGE DETECTION KEY
+  // -----------------------------
+  const key = JSON.stringify({
+    mode: ui.chartMode || "total",
+    data: data.map(p=>[
+      p.date,
+      p.y,
+      Array.isArray(p.sets) ? p.sets : []
+    ])
+  });
+
+  const dataChanged = (key !== ui.lastChartKey);
+  ui.lastChartKey = key;
+
+  const doSweep = !ui.chartHasPainted;
+  const doMorph = ui.chartHasPainted && dataChanged;
+
+  // -----------------------------
+  // Layout
+  // -----------------------------
+  const pad = { l:0, r:0, t:12, b:0 };
+  const innerW = w - pad.l - pad.r;
+  const innerH = h - pad.t - pad.b;
+
+  ctx.clearRect(0,0,w,h);
+  ui.points = [];
+
+  if(!data.length){
+    hideTip();
+    ui.chartHasPainted = true;
+    ui.prevPxy = null;
+    return;
+  }
+
+  // -----------------------------
+  // Scales
+  // -----------------------------
+  const ys = data.map(p=>p.y);
+  const tYs = (Array.isArray(trendLine) ? trendLine.map(p=>p.y) : []);
+  const allYs = ys.concat(tYs);
+  const yMax = Math.max(1, ...allYs);
+  const yMin = Math.min(0, ...allYs);
+
+  const xToPx = (i)=>{
+    if(data.length === 1) return pad.l + innerW * 0.5;
+    const edge = 0.08;
+    const t = i / (data.length - 1);
+    return pad.l + (edge + t * (1 - edge*2)) * innerW;
+  };
+
+  const yToPx = (v)=>
+    pad.t + innerH - (innerH * ((v - yMin) / (yMax - yMin || 1)));
+
+  const pxy = data.map((p,i)=>({
+    x: xToPx(i),
+    y: yToPx(p.y),
+    date: p.date,
+    yVal: p.y,
+    sets: (Array.isArray(p.sets) ? p.sets : []).slice()
+  }));
+
+  ui.points = pxy;
+
+  // -----------------------------
+  // Colors
+  // -----------------------------
+  const greenLine  = cssVar("--green2") || "#22c55e";
+  const greenDot   = cssVar("--green")  || "#16a34a";
+  const gridStroke = cssVar("--stroke");
+
+  const lerp = (a,b,t)=> a + (b-a)*t;
+  const prevPxy = Array.isArray(ui.prevPxy) ? ui.prevPxy : null;
+
+  // -----------------------------
+  // Edge extension
+  // -----------------------------
+  function extendToEdges(points){
+    if(points.length < 2) return points.slice();
+
+    const leftX  = pad.l;
+    const rightX = w - pad.r;
+
+    const p0 = points[0], p1 = points[1];
+    const pn = points.at(-1), pn1 = points.at(-2);
+
+    const slope = (a,b)=> (b.y - a.y) / ((b.x - a.x) || 1e-6);
+
+    let yL = p0.y + slope(p0,p1) * (leftX  - p0.x);
+    let yR = pn.y + slope(pn1,pn) * (rightX - pn.x);
+
+    const top = pad.t;
+    const bot = pad.t + innerH;
+    yL = Math.max(top, Math.min(bot, yL));
+    yR = Math.max(top, Math.min(bot, yR));
+
+    return [
+      {x:leftX,  y:yL, ...p0, _ghost:true},
+      ...points,
+      {x:rightX, y:yR, ...pn, _ghost:true}
+    ];
+  }
+
+  // -----------------------------
+  // Drawing
+  // -----------------------------
+  function drawFrame(pointsForDraw, revealT){
+    ctx.clearRect(0,0,w,h);
+
+    ctx.save();
+    clipRoundedRect(ctx, 0, 0, w, h, 22);
+
+    // grid
+    ctx.strokeStyle = gridStroke;
+    ctx.lineWidth = 1;
+    for(let i=0;i<=5;i++){
+      const y = pad.t + innerH*(i/5);
+      ctx.beginPath();
+      ctx.moveTo(pad.l, y);
+      ctx.lineTo(w - pad.r, y);
+      ctx.stroke();
+    }
+
+    updateAxisLabels(yMin, yMax, pxy);
+
+    const segs = buildSmoothPath(pointsForDraw);
+
+    // fill
+    ctx.globalAlpha = 0.20;
+    ctx.fillStyle = greenLine;
+    ctx.beginPath();
+    clipPathPartial(ctx, segs, revealT);
+    const firstX = pointsForDraw[0].x;
+    const lastX  = pointsForDraw[pointsForDraw.length - 1].x;
+    const bottomY = pad.t + innerH;
+
+    ctx.lineTo(lastX,  bottomY);
+    ctx.lineTo(firstX, bottomY);
+
+    ctx.closePath();
+    ctx.fill();
+
+    // line
+    ctx.globalAlpha = (trendOn ? 0.35 : 1);
+    ctx.strokeStyle = greenLine;
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    clipPathPartial(ctx, segs, revealT);
+    ctx.stroke();
+
+    // dots
+    ctx.globalAlpha = (trendOn ? 0.45 : 1);
+    ctx.fillStyle = greenDot;
+    const count = doSweep
+      ? Math.max(1, Math.floor(pointsForDraw.length * revealT))
+      : pointsForDraw.length;
+
+    for(let i=0;i<count;i++){
+      const p = pointsForDraw[i];
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 3.6, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    // Trendline (line of best fit) on top
+    if(trendOn && Array.isArray(trendLine) && trendLine.length >= 2 && pointsForDraw.length >= 2){
+      const x0 = pointsForDraw[0].x;
+      const x1 = pointsForDraw[pointsForDraw.length - 1].x;
+      const y0 = yToPx(Number(trendLine[0].y) || 0);
+      const y1 = yToPx(Number(trendLine[trendLine.length - 1].y) || 0);
+
+      ctx.save();
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = greenLine;
+      ctx.lineWidth = 2.8;
+      ctx.setLineDash([7, 7]);
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x1, y1);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ui.livePxy = pointsForDraw.map(p=>({x:p.x, y:p.y}));
+
+    ctx.restore();
+
+    // ---- side fade to white (no "prediction" curve past endpoints) ----
+    {
+      const firstX = pointsForDraw[0].x;
+      const lastX  = pointsForDraw[pointsForDraw.length - 1].x;
+      const firstY = pointsForDraw[0].y;
+      const lastY  = pointsForDraw[pointsForDraw.length - 1].y;
+      const bottomY = pad.t + innerH;
+
+      // Left side: fade from green at the point to transparent at the border
+      if(firstX > 0){
+        ctx.save();
+        ctx.globalAlpha = 0.20;
+        const lg = ctx.createLinearGradient(0, 0, firstX, 0);
+        lg.addColorStop(0, "rgba(34,197,94,0.25)");
+        lg.addColorStop(1, greenLine);
+        ctx.fillStyle = lg;
+
+        const yTop = Math.max(pad.t, Math.min(bottomY, firstY));
+        ctx.fillRect(0, yTop, firstX, bottomY - yTop);
+        ctx.restore();
+      }
+
+      // Right side: fade from green at the point to transparent at the border
+      if(lastX < w){
+        ctx.save();
+        ctx.globalAlpha = 0.20;
+        const rg = ctx.createLinearGradient(lastX, 0, w, 0);
+        rg.addColorStop(0, greenLine);
+        rg.addColorStop(1, "rgba(34,197,94,0.25)");
+        ctx.fillStyle = rg;
+
+        const yTop = Math.max(pad.t, Math.min(bottomY, lastY));
+        ctx.fillRect(lastX, yTop, w - lastX, bottomY - yTop);
+        ctx.restore();
+      }
+    }
+  }
+
+  // If we interrupt an in-progress morph, use the LAST DRAWN frame as the new baseline
+  if(Array.isArray(ui.livePxy) && ui.livePxy.length){
+    ui.prevPxy = ui.livePxy.map(p=>({x:p.x, y:p.y}));
+  }
+  cancelAnimationFrame(ui.chartAnimId);
+
+  // -----------------------------
+  // FIRST PAINT (no sweep)
+  // -----------------------------
+  if(doSweep){
+    // Draw instantly on refresh, but still set baseline for later morphs
+    drawFrame(pxy, 1);
+    ui.chartHasPainted = true;
+    ui.prevPxy = pxy.map(p=>({x:p.x, y:p.y}));
+    return;
+  }
+
+  // -----------------------------
+  // MORPH (all later changes)
+  // -----------------------------
+  if(doMorph && prevPxy){
+    const start = performance.now();
+    const dur = 300;
+
+    const tick = (now)=>{
+      const k = Math.min(1, (now-start)/dur);
+      const e = 1 - Math.pow(1-k, 3);
+
+      const base = (Array.isArray(ui.prevPxy) && ui.prevPxy.length) ? ui.prevPxy : null;
+
+      const interp = pxy.map((p,i)=>{
+        const a = (base && base[i]) ? base[i] : p;
+        return {
+          ...p,
+          x: lerp(a.x, p.x, e),
+          y: lerp(a.y, p.y, e)
+        };
+      });
+
+      drawFrame(interp, 1);
+
+      if(k < 1){
+        ui.chartAnimId = requestAnimationFrame(tick);
+      }else{
+        ui.prevPxy = pxy.map(p=>({x:p.x, y:p.y}));
+      }
+    };
+
+    ui.chartAnimId = requestAnimationFrame(tick);
+  }else{
+    drawFrame(pxy, 1);
+    ui.prevPxy = pxy.map(p=>({x:p.x, y:p.y}));
+  }
+
+  ui.chartHasPainted = true;
+}
+
+function drawYLabelsBig(ctx, yMin, yMax, pad, innerH){
+  ctx.save();
+  ctx.fillStyle = cssVar("--muted");
+  ctx.font = `950 18px ${getComputedStyle(document.body).fontFamily}`;
+  const ticks = 5;
+  for(let i=0;i<=ticks;i++){
+    const v = yMax - ((yMax - yMin) * (i/ticks));
+    const y = pad.t + innerH*(i/ticks);
+    ctx.fillText(String(Math.round(v)), 18, y + 7);
+  }
+  ctx.restore();
+}
+function drawXLabelsBig(ctx, pxy, pad, innerH, w){
+  if(!pxy.length) return;
+  const startISO = pxy[0].date;
+  const endISO = pxy[pxy.length-1].date;
+  const startTxt = fromISO(startISO).toLocaleDateString(undefined, {month:"short", day:"numeric"});
+  const endTxt = fromISO(endISO).toLocaleDateString(undefined, {month:"short", day:"numeric"});
+  ctx.save();
+  ctx.fillStyle = cssVar("--muted");
+  ctx.font = `950 18px ${getComputedStyle(document.body).fontFamily}`;
+  ctx.fillText(startTxt, pad.l, pad.t + innerH + 50);
+  const m = ctx.measureText(endTxt).width;
+  ctx.fillText(endTxt, w - 26 - m, pad.t + innerH + 50);
+  ctx.restore();
+}
+function buildSmoothPath(points){
+  const segs = [];
+  if(points.length === 1){
+    segs.push({type:"M", p:[points[0].x, points[0].y]});
+    return segs;
+  }
+  segs.push({type:"M", p:[points[0].x, points[0].y]});
+  for(let i=0;i<points.length-1;i++){
+    const p0 = points[Math.max(0, i-1)];
+    const p1 = points[i];
+    const p2 = points[i+1];
+    const p3 = points[Math.min(points.length-1, i+2)];
+    const tension = 0.35;
+    let cp1x = p1.x + (p2.x - p0.x) * tension / 2;
+    let cp1y = p1.y + (p2.y - p0.y) * tension / 2;
+    let cp2x = p2.x - (p3.x - p1.x) * tension / 2;
+    let cp2y = p2.y - (p3.y - p1.y) * tension / 2;
+    // ✅ Clamp Y control points so the curve can't dip below/above the segment endpoints
+    const lo = Math.min(p1.y, p2.y);
+    const hi = Math.max(p1.y, p2.y);
+    cp1y = Math.max(lo, Math.min(hi, cp1y));
+    cp2y = Math.max(lo, Math.min(hi, cp2y));
+    segs.push({type:"C", p:[cp1x,cp1y, cp2x,cp2y, p2.x,p2.y]});
+  }
+  return segs;
+}
+function clipPathPartial(ctx, segs, t){
+  if(!segs.length) return;
+  const totalC = segs.filter(s=>s.type==="C").length;
+  if(totalC === 0){
+    const m = segs[0];
+    ctx.moveTo(m.p[0], m.p[1]);
+    return;
+  }
+  const full = Math.max(0, Math.min(1, t));
+  const target = full * totalC;
+  let cIndex = 0;
+  let lastPoint = {x: segs[0].p[0], y: segs[0].p[1]};
+  for(const s of segs){
+    if(s.type === "M"){
+      ctx.moveTo(s.p[0], s.p[1]);
+      lastPoint = {x:s.p[0], y:s.p[1]};
+      continue;
+    }
+    if(s.type === "C"){
+      const nextIndex = cIndex + 1;
+      if(nextIndex <= target){
+        ctx.bezierCurveTo(...s.p);
+        lastPoint = {x:s.p[4], y:s.p[5]};
+      }else{
+        const localT = Math.max(0, Math.min(1, target - cIndex));
+        const [x1,y1,x2,y2,x3,y3] = s.p;
+        const sub = bezierSubsegment(lastPoint.x,lastPoint.y, x1,y1, x2,y2, x3,y3, localT);
+        ctx.bezierCurveTo(sub.cx1,sub.cy1, sub.cx2,sub.cy2, sub.x,sub.y);
+        break;
+      }
+      cIndex++;
+    }
+  }
+}
+function bezierSubsegment(x0,y0, x1,y1, x2,y2, x3,y3, t){
+  const lerp = (a,b,t)=> a + (b-a)*t;
+  const x01 = lerp(x0,x1,t), y01 = lerp(y0,y1,t);
+  const x12 = lerp(x1,x2,t), y12 = lerp(y1,y2,t);
+  const x23 = lerp(x2,x3,t), y23 = lerp(y2,y3,t);
+  const x012 = lerp(x01,x12,t), y012 = lerp(y01,y12,t);
+  const x123 = lerp(x12,x23,t), y123 = lerp(y12,y23,t);
+  const x0123 = lerp(x012,x123,t), y0123 = lerp(y012,y123,t);
+  return { cx1:x01, cy1:y01, cx2:x012, cy2:y012, x:x0123, y:y0123 };
+}
+/* Tooltip */
+function showTipAt(index, clientX, clientY){
+  if(index < 0 || index >= ui.points.length){ hideTip(); return; }
+  const p = ui.points[index];
+  const dateTxt = fromISO(p.date).toLocaleDateString(undefined, {weekday:"short", month:"short", day:"numeric", year:"numeric"});
+  const sets = p.sets || [];
+  const lines = sets.map((v,i)=>`Set ${i+1}: ${Number(v)||0}`);
+  let html = `<div class="d">${dateTxt}</div>`;
+  if(lines.length){
+    html += lines.map(s=>`<div class="line">${escapeHtml(s)}</div>`).join("");
+    html += `<div class="tot">Total: ${sumSets(sets)}</div>`;
+  }else{
+    html += `<div class="line">No sets</div>`;
+  }
+  els.tip.innerHTML = html;
+  // Position relative to the CANVAS (not the whole grid)
+  const rect = els.chart.getBoundingClientRect();
+  const x = clientX - rect.left;
+  const y = clientY - rect.top;
+  // Show first so we can measure size
+  els.tip.classList.add("show");
+  const tipW = els.tip.offsetWidth || 180;
+  const tipH = els.tip.offsetHeight || 80;
+  const pad = 10;
+  // Because the tip is centered on X and floats UP on Y via transform:
+  const minX = (tipW/2) + pad;
+  const maxX = rect.width - (tipW/2) - pad;
+  // Tip bottom sits at (y - 10). Tip top sits at (y - 10 - tipH).
+  const minY = tipH + 10 + pad;
+  const maxY = rect.height + 10 - pad;
+  const clamp = (v, a, b)=> Math.max(a, Math.min(b, v));
+  const cx = clamp(x, minX, maxX);
+  const cy = clamp(y, minY, maxY);
+  els.tip.style.left = `${cx}px`;
+  els.tip.style.top  = `${cy}px`;
+}
+function hideTip(){
+  els.tip.classList.remove("show");
+}
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+function nearestPointIndex(px, py){
+  let best = -1;
+  let bestD = Infinity;
+
+  for(let i=0;i<ui.points.length;i++){
+    const p = ui.points[i];
+    const dx = p.x - px;
+    const dy = p.y - py;
+    const d = Math.sqrt(dx*dx + dy*dy);
+    if(d < bestD){
+      bestD = d;
+      best = i;
+    }
+  }
+
+  // Finger-friendly hit radius on phones/tablets
+  const isCoarse =
+    window.matchMedia("(pointer: coarse)").matches &&
+    window.matchMedia("(hover: none)").matches;
+
+  const HIT = isCoarse ? 34 : 18;  // <- bigger for iPhone taps
+  return (bestD <= HIT) ? best : -1;
+}
+
+function canvasCssToCanvasPx(e){
+  const canvas = els.chart;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return {
+    cx: (e.clientX - rect.left) * scaleX,
+    cy: (e.clientY - rect.top) * scaleY,
+    clientX: e.clientX,
+    clientY: e.clientY
+  };
+}
+/* Logs list */
+function getNonEmptyLogsDesc(){
+  return getAllLogDates()
+    .filter(d => state.logs[d] && isNonEmptyEntry(state.logs[d]))
+    .sort((a,b)=> (a<b ? 1 : -1));
+}
+/* Streak calculation: consecutive days logged ending today (or yesterday if today not logged) */
+function computeStreak(){
+  const todayIso = toISO(new Date());
+  // start from today if logged, otherwise start from yesterday
+  let start = todayIso;
+  if(!state.logs[start] || !isNonEmptyEntry(state.logs[start])){
+    // try yesterday
+    const d = fromISO(todayIso);
+    d.setDate(d.getDate() - 1);
+    const y = toISO(d);
+    if(state.logs[y] && isNonEmptyEntry(state.logs[y])) start = y;
+    else return 0;
+  }
+  let count = 0;
+  let cur = fromISO(start);
+  while(true){
+    const iso = toISO(cur);
+    if(state.logs[iso] && isNonEmptyEntry(state.logs[iso])){
+      count++;
+      cur.setDate(cur.getDate() - 1);
+    }else break;
+  }
+  return count;
+}
+function updateStreakUI(animate = false){
+  const el = document.getElementById('streak');
+  const num = document.getElementById('streakNum');
+  if(!el || !num) return;
+  const val = computeStreak();
+  num.textContent = String(val);
+  if(animate){
+    el.classList.remove('pulse');
+    void el.offsetWidth;
+    el.classList.add('pulse');
+  }else{
+    el.classList.remove('pulse');
+  }
+}
+function renderLogsList(){
+    const CAN_SWIPE =
+    window.matchMedia("(pointer: coarse)").matches &&
+    window.matchMedia("(hover: none)").matches;
+
+  const dates = getNonEmptyLogsDesc();
+  const limit = 10;
+  const showingAll = ui.showAllLogs;
+  const showDates = showingAll ? dates : dates.slice(0, limit);
+  // show/hide Show all button
+  if(dates.length > limit){
+    els.btnShowAll.style.display = "inline-flex";
+    els.btnShowAll.textContent = showingAll ? "Show less" : "Show all";
+  }else{
+    els.btnShowAll.style.display = "none";
+  }
+  // Option B grid: Date + video + photo + Total + #Workouts
+  const grid = "minmax(110px, 1fr) 26px 26px minmax(54px, .25fr) minmax(54px, .25fr)";
+  els.logsTable.innerHTML = "";
+  // header row
+  const head = document.createElement("div");
+  head.className = "logsRow header";
+  head.style.gridTemplateColumns = grid;
+  head.appendChild(makeCell("Date", "cellDate muted"));
+  head.appendChild(makeCell("", "cellIcon muted"));      // video
+  head.appendChild(makeCell("", "cellIcon muted"));      // photo
+  head.appendChild(makeCell("Total", "cellNum muted"));  // total
+  head.appendChild(makeCell("Exs", "cellNum muted"));   // count
+  els.logsTable.appendChild(head);
+  if(showDates.length === 0){
+    const empty = document.createElement("div");
+    empty.className = "logsRow";
+    empty.style.gridTemplateColumns = "1fr";
+    empty.style.cursor = "default";
+    empty.innerHTML = `<div class="cellDate" style="color:var(--muted); font-weight:900;">No logs yet</div>`;
+    els.logsTable.appendChild(empty);
+    return;
+  }
+  showDates.forEach(iso=>{
+    const entry = state.logs[iso];
+    const workouts = entryToWorkouts(entry);
+    const sets = collapseSetsWithMults(workouts);
+    const total = sumSets(sets);
+    // NEW: pull totals from workouts
+    const workoutCount = workouts.filter(w => sumSets(w?.sets || []) > 0).length;
+    // total reps across all workouts
+    // front row (the existing row)
+    const row = document.createElement("div");
+    row.className = "logsRow";
+    row.style.gridTemplateColumns = grid;
+
+    row.appendChild(makeCell(prettyShortDate(iso), "cellDate"));
+
+    // video icon
+    const hasVid = !!(entry?.video && String(entry.video).trim());
+    row.appendChild(makeIconCell(hasVid ? "video" : "", entry?.video || "", entry?.photo || ""));
+
+    // photo icon
+    const hasPhoto = !!(entry?.photo && String(entry.photo).trim());
+    row.appendChild(makeIconCell(hasPhoto ? "photo" : "", entry?.video || "", entry?.photo || ""));
+
+    // Total + workout count
+    row.appendChild(makeCell(total ? String(total) : "", "cellNum cellTotal"));
+    row.appendChild(makeCell(workoutCount ? String(workoutCount) : "", "cellNum cellCount"));
+
+    row.addEventListener("click", ()=>{
+      loadDraftForDate(iso);
+      window.scrollTo({top:0, behavior:"smooth"});
+    });
+
+    if(!CAN_SWIPE){
+      // Windows/laptops: NO swipe DOM, no hidden delete layer (prevents overlay)
+      els.logsTable.appendChild(row);
+      return;
+    }
+
+    // Touch devices only: build swipe wrapper (delete behind)
+    const wrap = document.createElement("div");
+    wrap.className = "logsSwipeWrap";
+    wrap.dataset.open = "0";
+
+    const action = document.createElement("div");
+    action.className = "logsSwipeAction";
+
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "logsSwipeDeleteBtn";
+    delBtn.textContent = "Delete";
+    delBtn.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      if(!confirm(`Delete log for ${prettyShortDate(iso)}?`)) return;
+      deleteLogByIso(iso);
+    });
+    action.appendChild(delBtn);
+
+    row.classList.add("logsSwipeFront");
+    row.addEventListener("click", ()=>{
+      if(wrap.dataset.open === "1"){
+        closeAnyOpenLogSwipe();
+        return;
+      }
+      loadDraftForDate(iso);
+      window.scrollTo({top:0, behavior:"smooth"});
+    });
+
+    wrap.appendChild(action);
+    wrap.appendChild(row);
+    attachSwipeToLogRow(wrap, row);
+    els.logsTable.appendChild(wrap);
+
+  });
+  // update streak after logs render (no animation)
+  try{ updateStreakUI(false); }catch(e){}
+}
+
+let openLogSwipeWrap = null;
+
+function closeAnyOpenLogSwipe(){
+  if(openLogSwipeWrap){
+    const front  = openLogSwipeWrap.querySelector(".logsSwipeFront");
+    const action = openLogSwipeWrap.querySelector(".logsSwipeAction");
+    if(front) front.style.transform = "translateX(0px)";
+    if(action) action.style.opacity = "0";
+    openLogSwipeWrap.dataset.open = "0";
+    openLogSwipeWrap = null;
+  }
+}
+
+// Tap anywhere outside an open swiped row to close it
+document.addEventListener("pointerdown", (e)=>{
+  // close logs swipe if open + tapped outside
+  if(openLogSwipeWrap && !openLogSwipeWrap.contains(e.target)){
+    closeAnyOpenLogSwipe();
+  }
+  // close workout swipe if open + tapped outside
+  if(openWorkoutSwipeWrap && !openWorkoutSwipeWrap.contains(e.target)){
+    closeAnyOpenWorkoutSwipe();
+  }
+}, true);
+
+function attachSwipeToLogRow(wrap, front){
+  // Disable swipe-to-delete on desktops/laptops (Windows/Mac) and trackpads.
+  // Only allow on true touch-first devices (phones/tablets).
+  const canSwipe =
+    window.matchMedia("(pointer: coarse)").matches &&
+    window.matchMedia("(hover: none)").matches;
+
+  if(!canSwipe) return;
+
+  const MAX = 84;        // must match delete button width
+  const THRESH = 46;       // how far to swipe to "open"
+  const action = wrap.querySelector(".logsSwipeAction");
+  let startX = 0, startY = 0;
+  let dx = 0, dy = 0;
+  let tracking = false;
+  let decided = false;
+  let horizontal = false;
+
+  front.addEventListener("pointerdown", (e)=>{
+    if(e.pointerType === "mouse") return; // phone only; keep desktop behavior clean
+    if(openLogSwipeWrap && openLogSwipeWrap !== wrap) closeAnyOpenLogSwipe();
+
+    tracking = true;
+    decided = false;
+    horizontal = false;
+    dx = 0; dy = 0;
+    startX = e.clientX;
+    startY = e.clientY;
+    front.setPointerCapture(e.pointerId);
+  });
+
+  front.addEventListener("pointermove", (e)=>{
+    if(!tracking) return;
+    dx = e.clientX - startX;
+    dy = e.clientY - startY;
+
+    if(!decided){
+      if(Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      decided = true;
+      horizontal = Math.abs(dx) > Math.abs(dy);
+    }
+    if(!horizontal) return; // allow vertical scroll
+
+    e.preventDefault();
+
+    // swipe left only
+    const x = Math.max(-MAX, Math.min(0, dx));
+    front.style.transform = `translateX(${x}px)`;
+    // fade delete in as you swipe (0 -> 1)
+    if(action){
+      const t = Math.min(1, Math.max(0, (-x) / MAX));
+      action.style.opacity = String(t);
+    }
+
+  }, { passive:false });
+
+  function endSwipe(){
+    if(!tracking) return;
+    tracking = false;
+
+    const cur = dx;
+    const open = cur < -THRESH;
+
+    if(open){
+      front.style.transform = `translateX(${-MAX}px)`;
+      wrap.dataset.open = "1";
+      openLogSwipeWrap = wrap;
+      if(action) action.style.opacity = "1";
+    }else{
+      front.style.transform = "translateX(0px)";
+      wrap.dataset.open = "0";
+      if(openLogSwipeWrap === wrap) openLogSwipeWrap = null;
+      if(action) action.style.opacity = "0";
+    }
+  }
+
+  front.addEventListener("pointerup", endSwipe);
+  front.addEventListener("pointercancel", endSwipe);
+}
+
+let openWorkoutSwipeWrap = null;
+
+function closeAnyOpenWorkoutSwipe(){
+  if(openWorkoutSwipeWrap){
+    const front  = openWorkoutSwipeWrap.querySelector(".workoutSwipeFront");
+    const action = openWorkoutSwipeWrap.querySelector(".workoutSwipeAction");
+    if(front) front.style.transform = "translateX(0px)";
+    if(action) action.style.opacity = "0";
+    openWorkoutSwipeWrap.dataset.open = "0";
+    openWorkoutSwipeWrap = null;
+  }
+}
+
+// touch-only like your other swipe features
+function canSwipeTouchOnly(){
+  return (
+    window.matchMedia("(pointer: coarse)").matches &&
+    window.matchMedia("(hover: none)").matches
+  );
+}
+
+function attachSwipeToWorkout(wrap, front, wIdx){
+  if(!canSwipeTouchOnly()) return;
+
+  const MAX = 84;     // match logs
+  const THRESH = 46;  // match logs
+  const action = wrap.querySelector(".workoutSwipeAction");
+
+  let startX = 0, startY = 0;
+  let dx = 0, dy = 0;
+  let tracking = false;
+  let decided = false;
+  let horizontal = false;
+
+  front.addEventListener("pointerdown", (e)=>{
+    // Only touch/pen. Avoid mouse/trackpad weirdness.
+    if(e.pointerType === "mouse") return;
+
+    // close other open workout swipe
+    if(openWorkoutSwipeWrap && openWorkoutSwipeWrap !== wrap) closeAnyOpenWorkoutSwipe();
+
+    tracking = true;
+    decided = false;
+    horizontal = false;
+    dx = 0; dy = 0;
+    startX = e.clientX;
+    startY = e.clientY;
+
+    front.setPointerCapture(e.pointerId);
+  });
+
+  front.addEventListener("pointermove", (e)=>{
+    if(!tracking) return;
+
+    dx = e.clientX - startX;
+    dy = e.clientY - startY;
+
+    if(!decided){
+      if(Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      decided = true;
+      horizontal = Math.abs(dx) > Math.abs(dy);
+    }
+    if(!horizontal) return;
+
+    e.preventDefault();
+
+    // swipe left only
+    const x = Math.max(-MAX, Math.min(0, dx));
+    front.style.transform = `translateX(${x}px)`;
+
+    // fade in delete as you swipe (0 -> 1)
+    if(action){
+      const t = Math.min(1, Math.max(0, (-x) / MAX));
+      action.style.opacity = String(t);
+    }
+  }, { passive:false });
+
+  function endSwipe(){
+    if(!tracking) return;
+    tracking = false;
+
+    const open = dx < -THRESH;
+
+    if(open){
+      front.style.transform = `translateX(${-MAX}px)`;
+      wrap.dataset.open = "1";
+      openWorkoutSwipeWrap = wrap;
+      if(action) action.style.opacity = "1";
+    }else{
+      front.style.transform = "translateX(0px)";
+      wrap.dataset.open = "0";
+      if(openWorkoutSwipeWrap === wrap) openWorkoutSwipeWrap = null;
+      if(action) action.style.opacity = "0";
+    }
+  }
+
+  front.addEventListener("pointerup", endSwipe);
+  front.addEventListener("pointercancel", endSwipe);
+}
+
+function deleteWorkoutByIndex(idx){
+  // protect: keep at least one workout
+  if(ui.draftWorkouts.length <= 1){
+    ui.draftWorkouts[0] = { name:"Exercise", sets:[0], mults:[1] };
+  }else{
+    ui.draftWorkouts.splice(idx, 1);
+  }
+  closeAnyOpenWorkoutSwipe();
+  renderLog();
+  commitDraft();
+}
+
+function deleteLogByIso(iso){
+  if(!state.logs[iso]) return;
+
+  delete state.logs[iso];
+  saveState();
+  buildSetFilters();
+  renderChart();
+  renderLogsList();
+
+  // if you were currently editing that day, refresh the editor to empty
+  if(ui.activeDate === iso) loadDraftForDate(iso);
+
+  if(fbUser){
+    cloudDeleteLog(iso).catch(()=>{});
+  }
+}
+
+function makeCell(text, cls){
+  const d = document.createElement("div");
+  d.className = cls;
+  d.textContent = text;
+  return d;
+}
+function makeIconCell(type, videoUrl, photoSrc){
+  const wrap = document.createElement("div");
+  wrap.className = "cellIcon";
+  if(!type){
+    wrap.innerHTML = ""; // empty cell
+    return wrap;
+  }
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "miniIconBtn";
+  btn.title = (type === "video") ? "Open link" : "Open photo";
+  // prevent row click (date load) when tapping icon
+  btn.addEventListener("click", (e)=>{
+    e.stopPropagation();
+    if(type === "video"){
+      const url = (videoUrl || "").trim();
+      if(url) window.open(url, "_blank", "noopener");
+    }else{
+      const src = (photoSrc || "").trim();
+      if(src) openPhotoViewer(src);
+    }
+  });
+  if(type === "video"){
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <path d="M10 13a5 5 0 0 1 0-7l1-1a5 5 0 0 1 7 7l-1 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M14 11a5 5 0 0 1 0 7l-1 1a5 5 0 0 1-7-7l1-1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    `;
+  }else{
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5v-11Z" stroke="currentColor" stroke-width="2"/>
+        <path d="M8 14l2-2 3 3 3-4 2 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9 9.5a1 1 0 1 0 0 .01" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+    `;
+  }
+  wrap.appendChild(btn);
+  return wrap;
+}
+/* Settings */
+function openSettings(){
+  els.settingsBack.classList.add("show");
+  els.settingsBack.setAttribute("aria-hidden","false");
+  // populate inputs
+  els.setStartDate.value = state.settings.startDate || toISO(new Date());
+  els.setGoalDays.value = String(state.settings.goalDays ?? 156);
+  if(els.setDisplayName) els.setDisplayName.value = state.settings.displayName || "";
+  // apply mode + show/hide
+  setTitleMode(state.settings.titleMode || "challenge");
+  // ensure title updates immediately
+  updateDayCounterTitle();
+}
+function closeSettings(){
+  els.settingsBack.classList.remove("show");
+  els.settingsBack.setAttribute("aria-hidden","true");
+}
+/* Events */
+function wire(){
+  els.datePick.addEventListener("change", ()=>{
+    const iso = els.datePick.value || toISO(new Date());
+    loadDraftForDate(iso);
+  });
+    // Chart dropdowns
+  els.setFilterSel.addEventListener("change", ()=>{
+    ui.filterMode = els.setFilterSel.value;
+    buildSetFilters();
+    renderChart();
+  });
+  els.rangeSel.addEventListener("change", ()=>{
+    ui.rangeMode = els.rangeSel.value || "all";
+    renderChart();
+  });
+
+  // Trend toggle
+  if(els.trendToggle){
+    els.trendToggle.addEventListener("change", ()=>{
+      ui.trendMode = !!els.trendToggle.checked;
+      hideTip();
+      renderChart();
+    });
+  }
+  // Photo viewer close
+els.photoViewerClose.addEventListener("click", closePhotoViewer);
+els.photoViewerBack.addEventListener("click", (e)=>{ if(e.target === els.photoViewerBack) closePhotoViewer(); });
+document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closePhotoViewer(); });
+  // Auto-save settings on change (no Save button)
+function autoSaveSettings(){
+  // read values (always keep them stored even if hidden)
+  const sd = els.setStartDate.value || toISO(new Date());
+  const gd = Math.max(1, parseInt(els.setGoalDays.value || "156", 10) || 156);
+  const dn = (els.setDisplayName?.value || "").trim();
+  state.settings.startDate = sd;
+  state.settings.goalDays = gd;
+  state.settings.displayName = dn;
+  saveState();
+  updateDayCounterTitle();
+  if(fbUser) cloudSaveSettings();
+}
+els.setStartDate.addEventListener("change", autoSaveSettings);
+els.setGoalDays.addEventListener("change", autoSaveSettings);
+els.setGoalDays.addEventListener("input", autoSaveSettings);
+if(els.setDisplayName){
+  els.setDisplayName.addEventListener("input", autoSaveSettings);
+  els.setDisplayName.addEventListener("change", autoSaveSettings);
+}
+els.titleModeChallenge?.addEventListener("click", ()=>{
+  setTitleMode("challenge");
+  autoSaveSettings();
+});
+els.titleModeName?.addEventListener("click", ()=>{
+  setTitleMode("name");
+  autoSaveSettings();
+});
+// Open / close link panel (no auto-scroll)
+els.btnAddLink.addEventListener("click", ()=>{
+  const open = els.videoPanel.style.display !== "none";
+  els.videoPanel.style.display = open ? "none" : "block";
+  if(!open) setTimeout(()=> els.videoUrl.focus(), 50);
+});
+// Open / close photo panel OR upload if none exists
+els.btnAddPhoto.addEventListener("click", ()=>{
+  if(ui.draftPhoto){
+    const open = els.photoBox.style.display !== "none";
+    els.photoBox.style.display = open ? "none" : "flex";
+    els.photoHint.style.display = open ? "none" : "block";
+  }else{
+    els.photoInput.value = "";
+    els.photoInput.click();
+  }
+});
+  // Remove photo
+  els.btnRemovePhoto.addEventListener("click", ()=>{
+    ui.draftPhoto = "";
+    renderLog();
+    commitDraft();
+    toast("Saved");
+  });
+  // Handle photo selection (compress + enforce limit)
+  els.photoInput.addEventListener("change", async ()=>{
+    const file = els.photoInput.files?.[0];
+    if(!file) return;
+    try{
+      const dataUrl = await compressImageToUnder1MB(file);
+      ui.draftPhoto = dataUrl;
+      renderLog();
+      commitDraft();
+      toast("Saved");
+    }catch(e){
+      toast("Photo too large");
+    }
+  });
+// Templates
+els.btnTemplates.addEventListener("click", openTemplates);
+els.btnCloseTemplates.addEventListener("click", closeTemplates);
+els.templatesBack.addEventListener("click", (e)=>{ if(e.target === els.templatesBack) closeTemplates(); });
+els.btnTplSave.addEventListener("click", saveTemplateFromCurrentDay);
+els.tplName.addEventListener("keydown", (e)=>{ if(e.key === "Enter") saveTemplateFromCurrentDay(); });
+els.btnAddWorkout.addEventListener("click", ()=>{
+  if(!Array.isArray(ui.draftWorkouts)) ui.draftWorkouts = [];
+  const n = ui.draftWorkouts.length + 1;
+  ui.draftWorkouts.push({ name: `Exercise ${n}`, sets: [0], mults: [1] });
+  // NEW: auto-edit the newly created workout title
+  ui.editWorkoutIndex = ui.draftWorkouts.length - 1;
+  renderLog();
+  commitDraft();
+  toast("Added");
+});
+els.btnAddSet.addEventListener("click", ()=>{
+  if(!Array.isArray(ui.draftWorkouts) || !ui.draftWorkouts.length){
+    ui.draftWorkouts = [{ name:"Exercise", sets:[0] }];
+  }
+  const w = ui.draftWorkouts[ui.draftWorkouts.length - 1];
+  if(!Array.isArray(w.sets) || !w.sets.length) w.sets = [0];
+  const last = Number(w.sets[w.sets.length-1]) || 0;
+  w.sets.push(last);
+  if(!Array.isArray(w.mults)) w.mults = [];
+  w.mults = w.mults.slice(0, w.sets.length - 1); // align to previous length
+  while(w.mults.length < (w.sets.length - 1)) w.mults.push(1);
+  w.mults.push(1);
+  renderLog();
+  commitDraft();
+  toast("Added");
+});
+  // Center button in Settings
+els.btnAuthCenter.addEventListener("click", ()=>{
+  if(fbUser){
+    // signed-in flow -> sign out confirm popup (same modal)
+    openAuth();
+  }else{
+    // signed-out flow -> login/signup popup
+    openAuth();
+  }
+});
+// Auth modal close
+els.btnCloseAuth.addEventListener("click", closeAuth);
+els.authBack.addEventListener("click", (e)=>{ if(e.target === els.authBack) closeAuth(); });
+// Auth actions
+els.btnDoLogin.addEventListener("click", doLogin);
+els.btnDoSignup.addEventListener("click", doSignup);
+els.btnDoForgot.addEventListener("click", doForgot);
+els.btnDoLogout.addEventListener("click", doLogout);
+// prevent actual form submit refresh
+els.authForm.addEventListener("submit", (e)=> e.preventDefault());
+  let vTimer = null;
+  els.videoUrl.addEventListener("input", ()=>{
+    clearTimeout(vTimer);
+    vTimer = setTimeout(()=>{
+      ui.draftVideo = els.videoUrl.value || "";
+      renderLog();
+      commitDraft();
+      toast("Saved");
+    }, 300);
+  });
+  els.btnSettings.addEventListener("click", openSettings);
+  els.btnCloseSettings.addEventListener("click", closeSettings);
+  els.settingsBack.addEventListener("click", (e)=>{ if(e.target === els.settingsBack) closeSettings(); });
+  // Show all / show less logs
+  els.btnShowAll.addEventListener("click", ()=>{
+    ui.showAllLogs = !ui.showAllLogs;
+    renderLogsList();
+  });
+  const onMove = (ev)=>{
+    if(!ui.points.length){ hideTip(); return; }
+    const info = canvasCssToCanvasPx(ev);
+    const idx = nearestPointIndex(info.cx, info.cy);
+    if(idx === -1){
+      hideTip();
+      return;
+    }
+    showTipAt(idx, info.clientX, info.clientY);
+  };
+  els.chart.addEventListener("mousemove", onMove);
+  els.chart.addEventListener("mouseleave", hideTip);
+  let chartTouchStart = null;
+
+els.chart.addEventListener("touchstart", (e)=>{
+  const t = e.touches[0];
+  if(!t) return;
+  chartTouchStart = { x: t.clientX, y: t.clientY };
+  onMove(t); // tap shows tooltip
+}, {passive:true});
+
+els.chart.addEventListener("touchmove", (e)=>{
+  const t = e.touches[0];
+  if(!t) return;
+
+  // If the gesture is mostly vertical, assume user is scrolling the page
+  if(chartTouchStart){
+    const dx = Math.abs(t.clientX - chartTouchStart.x);
+    const dy = Math.abs(t.clientY - chartTouchStart.y);
+    if(dy > 10 && dy > dx){
+      hideTip();
+      return; // let scroll win
+    }
+  }
+
+  onMove(t); // horizontal move can still scrub points
+}, {passive:true});
+
+els.chart.addEventListener("touchend", ()=> {
+  chartTouchStart = null;
+  setTimeout(hideTip, 650);
+}, {passive:true});
+
+
+}
+/* Boot */
+function boot(){
+  buildSetFilters();
+  const today = toISO(new Date());
+  els.datePick.value = today;
+  loadDraftForDate(today);
+  // ensure title is correct immediately on refresh
+  updateDayCounterTitle();
+}
+/* Run */
+wire();
+boot();
+// animate streak once on page load/refresh
+try{ updateStreakUI(true); }catch(e){}
+</script>
+</body>
+</html>
